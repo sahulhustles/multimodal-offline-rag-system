@@ -1,0 +1,15 @@
+{
+  "processed_at": "2026-08-07T03:52:16.231128+00:00",
+  "modality_tags": [
+    "text"
+  ],
+  "chunk_count": 1,
+  "summary": "Extracted 1 pages, 0 images, and generated 1 text chunks.",
+  "previews": {
+    "text_preview": "Artificial Intelligence\nArtificial intelligence (AI) is transforming the way people live, work, and learn. It refers to computer\nsystems that can perform tasks that normally require human intelligence, such as recognizing\nspeech, analyzing images, solving problems, and making decisions. AI is widely",
+    "chunk_previews": [
+      "artificial intelligence artificial intelligence ( ai ) is transforming the way people live, work, and learn. it refers to computer systems that can perform tasks that normally require human intelligence, such as recognizing speech, analyzing images, solving problems, and making decisions. ai is widely used in healthcare to assist doctors with diagnosis, in education to provide personalized learning experiences, and in transportation to improve navigation and safety. businesses rely on ai to automate repetitive tasks, analyze customer behavior, and enhance productivity. despite its many advantages, ai also raises important concerns about privacy, security, bias, and the future of employment. responsible development and ethical use are essential to ensure that ai benefits society while minimizing potential risks. governments, researchers, and technology companies continue to create guidelines that encourage transparency and accountability. as ai technology advances, it is expected to play an even greater role in scientific research, environmental protection, and everyday life. understanding ai and its capabilities helps individuals adapt to a rapidly changing digital world and make informed decisions about how this powerful technology should be used for the benefit of humanity. continuous learning, collaboration, public awareness, and thoughtful innovation will ensure ai remains a powerful tool for future generations."
+    ]
+  },
+  "embedding_status": "384-dim SentenceTransformer embeddings verified"
+}

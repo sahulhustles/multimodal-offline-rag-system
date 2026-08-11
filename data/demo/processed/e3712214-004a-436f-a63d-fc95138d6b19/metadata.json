@@ -1,0 +1,14 @@
+{
+  "processed_at": "2026-08-07T03:52:16.224641+00:00",
+  "modality_tags": [
+    "text",
+    "image"
+  ],
+  "chunk_count": 0,
+  "summary": "Extracted 2 pages, 2 images, and generated 0 text chunks.",
+  "previews": {
+    "text_preview": "\n",
+    "chunk_previews": []
+  },
+  "embedding_status": "384-dim SentenceTransformer embeddings verified"
+}
