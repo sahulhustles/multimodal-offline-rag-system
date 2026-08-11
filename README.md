@@ -1,5 +1,4 @@
-# Fully Offline Multimodal Retrieval-Augmented Generation System
-
+# Fully Offline Multimodal Retrieval-Augmented Generation System by skct students
 A fully offline multimodal RAG system that ingests PDFs, DOC/DOCX, images, audio, and text notes — processes them through specialized pipelines (text chunking, CLIP vision encoding, Whisper transcription) — generates embeddings — and indexes everything into a local Qdrant vector database with cross-modal linking.
 
 > **Current Phase**: Phase 1 — Project Scaffold & Infrastructure  
