@@ -360,15 +360,22 @@ async def demo_audio_process(file: UploadFile = File(...)):
             }
         
         segments_data = []
+        full_text_list = []
         for s in transcript_result.segments:
+            seg_text = getattr(s, "transcript_text", getattr(s, "text", ""))
+            if seg_text:
+                full_text_list.append(seg_text.strip())
             segments_data.append({
                 "segment_index": s.segment_index,
                 "start_seconds": s.start_seconds,
                 "end_seconds": s.end_seconds,
-                "transcript_text": s.text
+                "transcript_text": seg_text
             })
             
         duration_ms = int((time.time() - start_time) * 1000)
+        full_text = " ".join(full_text_list).strip()
+        detected_lang = getattr(transcript_result, "language", getattr(transcript_result, "detected_language", "unknown"))
+        total_duration = getattr(transcript_result, "total_duration_seconds", getattr(transcript_result, "duration_seconds", 0.0))
         
         return {
             "demo_mode": True,
@@ -383,11 +390,11 @@ async def demo_audio_process(file: UploadFile = File(...)):
             "whisper": {
                 "model": settings.whisper_model_size,
                 "compute_type": settings.whisper_compute_type,
-                "detected_language": transcript_result.detected_language,
+                "detected_language": detected_lang,
                 "transcription_segments": segments_data
             },
-            "transcription_text_preview": transcript_result.full_text[:500] + "..." if len(transcript_result.full_text) > 500 else transcript_result.full_text,
-            "total_duration_seconds": transcript_result.duration_seconds,
+            "transcription_text_preview": full_text[:500] + "..." if len(full_text) > 500 else full_text,
+            "total_duration_seconds": total_duration,
             "segment_count": len(segments_data),
             "processing_time_ms": duration_ms,
             "message": "Timestamped segments are prepared for text embedding and Phase 3 indexing. Not indexed in Qdrant during this demo."
