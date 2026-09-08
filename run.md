@@ -1,6 +1,6 @@
 # Ingest & Query Console Run Book
 
-Follow these steps to initialize and start the offline Multimodal RAG demonstrator.
+Follow these steps to initialize and start the offline Multimodal RAG system.
 
 ---
 

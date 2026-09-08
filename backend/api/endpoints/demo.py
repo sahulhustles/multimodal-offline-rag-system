@@ -1,8 +1,7 @@
-"""Demo Processing APIs for the Multimodal RAG System.
+"""Multimodal RAG Processing and Ingestion APIs.
 
-These endpoints expose the Phase 1 and Phase 2 offline processing modules
-for the Teacher Demonstration UI.
-They NEVER create Qdrant points or ingestion records.
+These endpoints expose offline document extraction, chunking, vision encoding, audio transcription,
+and library management services for the Multimodal RAG Platform.
 """
 
 from __future__ import annotations

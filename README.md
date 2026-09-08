@@ -201,11 +201,11 @@ first-review/
 
 ---
 
-## Phase 1 & 2 Demonstrator UI (Frontend)
+## Application Web Interface (Frontend)
 
-To assist with faculty review, a standalone React/Vite demonstrator UI is included.
+A modern React/Vite web application interface is provided to interact with all document ingestion, extraction, vector metrics, and system status features.
 
-### Starting the Demo UI
+### Starting the Web UI
 
 1. **Start the Backend APIs**:
    ```bash
@@ -223,21 +223,20 @@ To assist with faculty review, a standalone React/Vite demonstrator UI is includ
 3. **Access the UI**:
    Open `http://localhost:5173` in your browser.
 
-### Teacher Demo Workflow
+### Application Workflow
 
-1. Navigate to **System Status** to verify Qdrant, Ollama, LibreOffice, and ffmpeg are ready.
+1. Navigate to **System Status** to verify Qdrant, Ollama, LibreOffice, and FFmpeg runtime dependencies.
 2. Open the **Processor Lab**:
-   - **Text Chunking**: Verify the 512/50 overlapping window.
-   - **Text Embedding**: Generate a 384-dimensional text vector locally.
-   - **Image Vision**: Upload an image to see CLIP extraction and LLaVA visual description.
-   - **PDF/DOCX Extraction**: Upload documents and verify images and text are properly isolated.
-   - **Audio Processing**: Upload audio to see it transcribed via Whisper.
-3. Review **System Architecture** and **About** pages for a high-level overview.
+   - **Text Chunking**: Verify the 512/50 overlapping sliding window.
+   - **Text Embedding**: Generate 384-dimensional text vectors locally.
+   - **Image Vision**: Process images with CLIP feature extraction and LLaVA visual descriptions.
+   - **PDF/DOCX Extraction**: Extract isolated text blocks and embedded image assets.
+   - **Audio Processing**: Transcribe audio files with timestamped segment extraction via Whisper.
+3. Open the **Knowledge Base** library to manage and process uploaded documents.
+4. Review **System Architecture** and **About** pages for detailed pipeline documentation.
 
-**Important Note**: The Demonstrator UI operates on a strictly "No Side Effects" principle. All results are processed locally and stored in browser memory or the `data/demo` directory. **No Qdrant points are created during this demo (deferred to Phase 3).**
-
-### Demo File Cleanup
-You can clear temporary demo uploads and extraction artifacts by running:
+### Data Cleanup
+You can clear temporary uploads and processed extraction artifacts by running:
 ```bash
 python scripts/cleanup_demo.py
 ```
