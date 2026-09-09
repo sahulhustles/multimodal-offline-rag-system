@@ -1,0 +1,164 @@
+{
+  "processed_at": "2026-09-08T23:53:46.132968+00:00",
+  "modality_tags": [
+    "audio",
+    "text"
+  ],
+  "chunk_count": 23,
+  "summary": "Audio normalized (mono 16kHz) and transcribed (detected language: en) into 23 segments.",
+  "previews": {
+    "text_preview": "How to talk about daily routines. My daily routine is nothing special. I usually wake up early, around 7 a.m. Breakfast is not important to me, so I usually only drink a cup of coffee. Sometimes, though, I will have an apple. Breakfast is followed by a shower. After I get dressed, I go to work. Work is always the same during the morning. I respond to emails and set up meetings. Around lunchtime, I start to feel really hungry. Often, my friends and I meet at a cafe to have lunch together. When dinnertime comes around, however, I cook dinner at home. After dinner, I take my dog for a walk to the park. We can usually see the sunset, which is quite beautiful. I watch TV series or movies at night. There is nothing like a good movie before bed. I sleep at 10 p.m. and then start the whole routine over again the next day. I sleep at 10 p.m. and then start the whole routine over again the next day. I wake up early every morning by doing my duties on the farm. I endlessly study about other topics while the three of us strength. Even the photo of my fifth birthday dishes last Friday night. The two purposes of my day are \u0441\u0432\u0435\u0436\u0430\u044f announcements and my Athletic career done by you. Also a lot of you were worried about the interesses I ask.",
+    "chunk_previews": [
+      "[1.87s - 4.51s]: How to talk about daily routines.",
+      "[5.29s - 10.73s]: My daily routine is nothing special.",
+      "[11.67s - 14.55s]: I usually wake up early, around 7 a.m.",
+      "[15.73s - 20.11s]: Breakfast is not important to me, so I usually only drink a cup of coffee.",
+      "[23.70s - 25.82s]: Sometimes, though, I will have an apple."
+    ],
+    "audio_transcription": "How to talk about daily routines. My daily routine is nothing special. I usually wake up early, around 7 a.m. Breakfast is not important to me, so I usually only drink a cup of coffee. Sometimes, though, I will have an apple. Breakfast is followed by a shower. After I get dressed, I go to work. Work is always the same during the morning. I respond to emails and set up meetings. Around lunchtime, I start to feel really hungry. Often, my friends and I meet at a cafe to have lunch together. When dinnertime comes around, however, I cook dinner at home. After dinner, I take my dog for a walk to the park. We can usually see the sunset, which is quite beautiful. I watch TV series or movies at night. There is nothing like a good movie before bed. I sleep at 10 p.m. and then start the whole routine over again the next day. I sleep at 10 p.m. and then start the whole routine over again the next day. I wake up early every morning by doing my duties on the farm. I endlessly study about other topics while the three of us strength. Even the photo of my fifth birthday dishes last Friday night. The two purposes of my day are \u0441\u0432\u0435\u0436\u0430\u044f announcements and my Athletic career done by you. Also a lot of you were worried about the interesses I ask.",
+    "audio_segments": [
+      {
+        "segment_index": 0,
+        "start_seconds": 1.87,
+        "end_seconds": 4.51,
+        "transcript_text": "How to talk about daily routines."
+      },
+      {
+        "segment_index": 1,
+        "start_seconds": 5.29,
+        "end_seconds": 10.73,
+        "transcript_text": "My daily routine is nothing special."
+      },
+      {
+        "segment_index": 2,
+        "start_seconds": 11.67,
+        "end_seconds": 14.55,
+        "transcript_text": "I usually wake up early, around 7 a.m."
+      },
+      {
+        "segment_index": 3,
+        "start_seconds": 15.73,
+        "end_seconds": 20.11,
+        "transcript_text": "Breakfast is not important to me, so I usually only drink a cup of coffee."
+      },
+      {
+        "segment_index": 4,
+        "start_seconds": 23.7,
+        "end_seconds": 25.82,
+        "transcript_text": "Sometimes, though, I will have an apple."
+      },
+      {
+        "segment_index": 5,
+        "start_seconds": 27.26,
+        "end_seconds": 29.16,
+        "transcript_text": "Breakfast is followed by a shower."
+      },
+      {
+        "segment_index": 6,
+        "start_seconds": 30.32,
+        "end_seconds": 32.56,
+        "transcript_text": "After I get dressed, I go to work."
+      },
+      {
+        "segment_index": 7,
+        "start_seconds": 35.73,
+        "end_seconds": 38.09,
+        "transcript_text": "Work is always the same during the morning."
+      },
+      {
+        "segment_index": 8,
+        "start_seconds": 38.09,
+        "end_seconds": 41.69,
+        "transcript_text": "I respond to emails and set up meetings."
+      },
+      {
+        "segment_index": 9,
+        "start_seconds": 45.19,
+        "end_seconds": 48.17,
+        "transcript_text": "Around lunchtime, I start to feel really hungry."
+      },
+      {
+        "segment_index": 10,
+        "start_seconds": 49.39,
+        "end_seconds": 52.83,
+        "transcript_text": "Often, my friends and I meet at a cafe to have lunch together."
+      },
+      {
+        "segment_index": 11,
+        "start_seconds": 57.66,
+        "end_seconds": 61.22,
+        "transcript_text": "When dinnertime comes around, however, I cook dinner at home."
+      },
+      {
+        "segment_index": 12,
+        "start_seconds": 62.3,
+        "end_seconds": 65.58,
+        "transcript_text": "After dinner, I take my dog for a walk to the park."
+      },
+      {
+        "segment_index": 13,
+        "start_seconds": 69.72,
+        "end_seconds": 72.56,
+        "transcript_text": "We can usually see the sunset, which is quite beautiful."
+      },
+      {
+        "segment_index": 14,
+        "start_seconds": 73.34,
+        "end_seconds": 76.38,
+        "transcript_text": "I watch TV series or movies at night."
+      },
+      {
+        "segment_index": 15,
+        "start_seconds": 76.38,
+        "end_seconds": 82.76,
+        "transcript_text": "There is nothing like a good movie before bed."
+      },
+      {
+        "segment_index": 16,
+        "start_seconds": 83.68,
+        "end_seconds": 88.38,
+        "transcript_text": "I sleep at 10 p.m. and then start the whole routine over again the next day."
+      },
+      {
+        "segment_index": 17,
+        "start_seconds": 88.38,
+        "end_seconds": 88.58,
+        "transcript_text": "I sleep at 10 p.m. and then start the whole routine over again the next day."
+      },
+      {
+        "segment_index": 18,
+        "start_seconds": 88.58,
+        "end_seconds": 99.9,
+        "transcript_text": "I wake up early every morning by doing my duties on the farm."
+      },
+      {
+        "segment_index": 19,
+        "start_seconds": 100.4,
+        "end_seconds": 106.08,
+        "transcript_text": "I endlessly study about other topics while the three of us strength."
+      },
+      {
+        "segment_index": 20,
+        "start_seconds": 107.98,
+        "end_seconds": 112.1,
+        "transcript_text": "Even the photo of my fifth birthday dishes last Friday night."
+      },
+      {
+        "segment_index": 21,
+        "start_seconds": 112.92,
+        "end_seconds": 116.56,
+        "transcript_text": "The two purposes of my day are \u0441\u0432\u0435\u0436\u0430\u044f announcements and my Athletic career done by you."
+      },
+      {
+        "segment_index": 22,
+        "start_seconds": 116.56,
+        "end_seconds": 118.34,
+        "transcript_text": "Also a lot of you were worried about the interesses I ask."
+      }
+    ]
+  },
+  "indexing": {
+    "total_points_indexed": 23,
+    "warnings": []
+  }
+}

@@ -1,10 +1,14 @@
-"""Qdrant connection management and collection lifecycle.
+"""Qdrant connection management, collection lifecycle, and indexing utilities.
 
 Provides:
-    get_qdrant_client()  — singleton Qdrant client
-    ensure_collection()  — idempotent creation of the multimodal_rag collection
-    get_collection_info() — collection metadata and vector configuration
-    check_qdrant_health() — connectivity check
+    get_qdrant_client()       — singleton Qdrant client
+    ensure_collection()       — idempotent creation of the multimodal_rag collection
+    ensure_payload_indexes()  — create payload indexes for efficient filtering
+    get_collection_info()     — collection metadata and vector configuration
+    check_qdrant_health()     — connectivity check
+    upsert_points_batch()     — batch upsert with configurable size
+    delete_points_by_source() — filtered delete by source_document_id
+    count_points_by_source()  — count points for a source document
 """
 
 from __future__ import annotations
@@ -73,6 +77,9 @@ def ensure_collection() -> None:
         "text (384d, cosine), image (512d, cosine)",
         collection_name,
     )
+
+    # Create payload indexes for efficient filtering (Phase 3)
+    ensure_payload_indexes()
 
 
 def get_collection_info() -> dict:
@@ -201,3 +208,138 @@ def check_qdrant_health() -> dict:
         }
     except Exception as e:
         return {"connected": False, "error": str(e)}
+
+
+# ---------------------------------------------------------------------------
+# Phase 3: Payload indexes
+# ---------------------------------------------------------------------------
+
+_PAYLOAD_INDEX_FIELDS = [
+    ("source_document_id", models.PayloadSchemaType.KEYWORD),
+    ("modality", models.PayloadSchemaType.KEYWORD),
+    ("source_type", models.PayloadSchemaType.KEYWORD),
+    ("indexing_status", models.PayloadSchemaType.KEYWORD),
+]
+
+
+def ensure_payload_indexes() -> None:
+    """Create payload indexes on the collection for efficient filtering.
+
+    Idempotent — Qdrant silently ignores indexes that already exist.
+    """
+    client = get_qdrant_client()
+    collection_name = settings.qdrant_collection_name
+
+    for field_name, schema_type in _PAYLOAD_INDEX_FIELDS:
+        try:
+            client.create_payload_index(
+                collection_name=collection_name,
+                field_name=field_name,
+                field_schema=schema_type,
+            )
+        except Exception as exc:
+            # Some Qdrant versions raise if index exists — swallow it
+            logger.debug(
+                "Payload index '%s' may already exist: %s", field_name, exc
+            )
+
+    logger.info(
+        "Payload indexes ensured for %s: %s",
+        collection_name,
+        [f for f, _ in _PAYLOAD_INDEX_FIELDS],
+    )
+
+
+# ---------------------------------------------------------------------------
+# Phase 3: Batch upsert
+# ---------------------------------------------------------------------------
+
+
+def upsert_points_batch(points: list[models.PointStruct]) -> int:
+    """Upsert points into the collection in configurable batches.
+
+    Returns the total number of points upserted.
+    """
+    if not points:
+        return 0
+
+    client = get_qdrant_client()
+    collection_name = settings.qdrant_collection_name
+    batch_size = settings.qdrant_upsert_batch_size
+    total = 0
+
+    for i in range(0, len(points), batch_size):
+        batch = points[i : i + batch_size]
+        client.upsert(
+            collection_name=collection_name,
+            points=batch,
+            wait=True,
+        )
+        total += len(batch)
+        logger.debug(
+            "Upserted batch %d–%d (%d points)", i, i + len(batch) - 1, len(batch)
+        )
+
+    logger.info("Upserted %d points into '%s'", total, collection_name)
+    return total
+
+
+# ---------------------------------------------------------------------------
+# Phase 3: Filtered delete
+# ---------------------------------------------------------------------------
+
+
+def delete_points_by_source(
+    source_document_id: str, *, wait: bool = True
+) -> None:
+    """Delete all Qdrant points belonging to a source document.
+
+    Uses a payload filter on ``source_document_id``.  When *wait* is
+    True, the call blocks until deletion is confirmed.
+    """
+    client = get_qdrant_client()
+    collection_name = settings.qdrant_collection_name
+
+    client.delete(
+        collection_name=collection_name,
+        points_selector=models.FilterSelector(
+            filter=models.Filter(
+                must=[
+                    models.FieldCondition(
+                        key="source_document_id",
+                        match=models.MatchValue(value=source_document_id),
+                    )
+                ]
+            )
+        ),
+        wait=wait,
+    )
+    logger.info(
+        "Deleted Qdrant points for source_document_id=%s (wait=%s)",
+        source_document_id,
+        wait,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Phase 3: Count by source
+# ---------------------------------------------------------------------------
+
+
+def count_points_by_source(source_document_id: str) -> int:
+    """Return the number of Qdrant points for a given source document."""
+    client = get_qdrant_client()
+    collection_name = settings.qdrant_collection_name
+
+    result = client.count(
+        collection_name=collection_name,
+        count_filter=models.Filter(
+            must=[
+                models.FieldCondition(
+                    key="source_document_id",
+                    match=models.MatchValue(value=source_document_id),
+                )
+            ]
+        ),
+    )
+    return result.count

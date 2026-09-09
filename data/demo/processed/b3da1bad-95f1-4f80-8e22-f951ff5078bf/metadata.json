@@ -1,0 +1,21 @@
+{
+  "processed_at": "2026-09-08T23:10:54.110281+00:00",
+  "modality_tags": [
+    "image",
+    "text"
+  ],
+  "chunk_count": 2,
+  "summary": "Image processed with CLIP (status: completed) and LLaVA (status: completed).",
+  "previews": {
+    "text_preview": "The image presents a white background with two distinct blue circles. The larger circle is a stamp, with the words \"Pearl Technologies\" written in black text. The smaller circle is a signature, with the words \"Ishan\" written in black text. The stamp and signature are positioned side by side, creating a sense of balance and symmetry in the image. The text \"Pearl Technologies\" is clearly visible, and the words \"Ishan\" are also present, indicating that the stamp and signature are related to the company \"Pearl Technologies\".",
+    "chunk_previews": [
+      "CLIP Image Chunk (512-dim embedding representation)",
+      "LLaVA Text Description Chunk: The image presents a white background with two distinct blue circles. The larger circle is a stamp, with the words \"Pearl Technologies\" written in black text. The smaller circle is a signature, with t..."
+    ],
+    "llava_description": "The image presents a white background with two distinct blue circles. The larger circle is a stamp, with the words \"Pearl Technologies\" written in black text. The smaller circle is a signature, with the words \"Ishan\" written in black text. The stamp and signature are positioned side by side, creating a sense of balance and symmetry in the image. The text \"Pearl Technologies\" is clearly visible, and the words \"Ishan\" are also present, indicating that the stamp and signature are related to the company \"Pearl Technologies\"."
+  },
+  "indexing": {
+    "total_points_indexed": 2,
+    "warnings": []
+  }
+}

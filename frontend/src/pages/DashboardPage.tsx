@@ -29,15 +29,15 @@ export default function DashboardPage() {
             Offline Multimodal RAG
           </h1>
           <p className="text-text-muted text-sm mt-1">
-            Local Platform Foundation & Processing Demonstrator (Phase 1 & Phase 2)
+            Local Multimodal Processing & Qdrant Vector Indexing (Phase 1 – 3)
           </p>
         </div>
         <div className="flex flex-col items-end text-right shrink-0">
           <span className="text-xs font-mono bg-status-success-bg text-status-success border border-status-success px-2.5 py-1 rounded-sm uppercase tracking-wider font-semibold">
-            Phase 2: Processed locally
+            Phase 3: Qdrant Indexing Active
           </span>
           <span className="text-[10px] text-text-muted mt-1">
-            Phase 3: Retrieval and grounded Q&A next
+            Phase 4: Retrieval and grounded Q&A next
           </span>
         </div>
       </div>
@@ -115,8 +115,15 @@ export default function DashboardPage() {
                     <span className="text-xs text-text-muted font-mono">512-D (Cosine distance)</span>
                   </div>
                 </div>
-                <div className="p-3 bg-status-warning-bg border border-status-warning text-status-warning text-xs font-semibold uppercase tracking-wider text-center">
-                  Upcoming in Phase 3: Qdrant Point Creation
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="p-3 bg-surface-secondary border border-border-light text-center">
+                    <div className="text-lg font-bold text-brand font-mono">{status.qdrant?.points_count ?? '—'}</div>
+                    <div className="text-[10px] text-text-muted uppercase tracking-wider font-mono">Total Points</div>
+                  </div>
+                  <div className="p-3 bg-surface-secondary border border-border-light text-center">
+                    <div className="text-lg font-bold text-brand font-mono">{status.qdrant?.indexed_vectors_count ?? '—'}</div>
+                    <div className="text-[10px] text-text-muted uppercase tracking-wider font-mono">Indexed Vectors</div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -144,14 +151,14 @@ export default function DashboardPage() {
             </div>
             <div className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <ScopeBadge status="verified" title="Phase 1 Verified" desc="Platform Foundation" />
-              <ScopeBadge status="verified" title="Phase 2 Demonstrated" desc="Processing Components" />
-              <ScopeBadge status="next" title="Phase 3 Next" desc="Qdrant Point Creation" />
-              <ScopeBadge status="future" title="Future Scope" desc="Retrieval & Generation" />
+              <ScopeBadge status="verified" title="Phase 2 Verified" desc="Processing Components" />
+              <ScopeBadge status="verified" title="Phase 3 Active" desc="Qdrant Point Indexing" />
+              <ScopeBadge status="next" title="Phase 4 Next" desc="Retrieval & Generation" />
             </div>
           </div>
 
           <div className="p-3 border border-border bg-surface-secondary text-center text-xs text-text-muted font-medium">
-            Ingestion workflow stores documents locally in SQLite and parses metadata.json in real-time. No points are upserted into Qdrant in this phase.
+            Documents are extracted, chunked, embedded, and indexed into Qdrant with cross-modal payload links. Metadata persisted in SQLite.
           </div>
         </div>
       ) : (

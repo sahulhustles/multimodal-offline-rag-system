@@ -507,14 +507,28 @@ async def demo_audio_readiness_check():
 # ---------------------------------------------------------------------------
 from fastapi import BackgroundTasks
 from backend.db.database import get_session
-from backend.db.models import SourceDocument, JobStatus, DocumentSourceType
+from backend.db.models import SourceDocument, JobStatus, DocumentSourceType, IndexingStatus
 from sqlmodel import select
 
+# Phase 3 imports
+from backend.indexing.indexer import (
+    index_text_chunks,
+    index_image,
+    index_audio_segments,
+    delete_indexed_records,
+    get_index_status,
+)
+from backend.db.models import RecordSourceType
+
 def process_document_bg(doc_id: str, file_path: str, filename: str, source_type: DocumentSourceType):
-    """Extract, chunk, and embed metadata asynchronously."""
+    """Extract, chunk, embed, and index a document asynchronously.
+
+    Phase 1-2: Extract + chunk
+    Phase 3:   Embed + upsert to Qdrant + persist IndexedRecords
+    """
     from datetime import datetime, timezone
     import json
-    
+
     # 1. Update status to processing
     with get_session() as session:
         doc = session.get(SourceDocument, doc_id)
@@ -522,11 +536,11 @@ def process_document_bg(doc_id: str, file_path: str, filename: str, source_type:
             doc.ingestion_status = JobStatus.processing
             session.add(doc)
             session.commit()
-            
+
     try:
         doc_dir = DEMO_PROCESSED / doc_id
         doc_dir.mkdir(parents=True, exist_ok=True)
-        
+
         chunk_count = 0
         modality_tags = ["text"]
         previews = {
@@ -534,85 +548,93 @@ def process_document_bg(doc_id: str, file_path: str, filename: str, source_type:
             "chunk_previews": [],
         }
         summary = ""
-        
+        indexing_warnings: list[str] = []
+        indexing_results: list[dict] = []
+
+        # --- Holders for Phase 3 indexing ---
+        chunks = []           # TextChunkResult list
+        vision_result = None  # VisionProcessingResult (standalone image)
+        audio_result = None   # AudioTranscriptionResult
+        extracted_images = [] # ExtractedImageResult list (PDF/DOCX)
+
         # 2. Run extractor
         if source_type == DocumentSourceType.pdf:
             from backend.processors.pdf_extractor import extract_pdf
             from backend.processors.chunker import create_chunks_from_pages
-            
+
             result = extract_pdf(Path(file_path), doc_id, filename, str(DEMO_PROCESSED))
             page_tuples = [(p.page_number, p.text) for p in result.pages]
             chunks = create_chunks_from_pages(page_tuples, doc_id)
-            
+
             chunk_count = len(chunks)
             modality_tags = ["text"]
-            if len(result.extracted_images) > 0:
+            extracted_images = result.extracted_images
+            if len(extracted_images) > 0:
                 modality_tags.append("image")
-                
+
             previews["text_preview"] = "\n".join(p.text[:300] for p in result.pages[:3])
             previews["chunk_previews"] = [c.text for c in chunks[:5]]
-            summary = f"Extracted {result.total_pages} pages, {len(result.extracted_images)} images, and generated {chunk_count} text chunks."
-            
+            summary = f"Extracted {result.total_pages} pages, {len(extracted_images)} images, and generated {chunk_count} text chunks."
+
         elif source_type == DocumentSourceType.docx:
             from backend.processors.docx_extractor import extract_docx
             from backend.processors.doc_converter import convert_doc_to_docx
             from backend.processors.chunker import create_chunks
-            
+
             actual_path = Path(file_path)
-            # Support legacy doc conversion
             if actual_path.suffix.lower() == ".doc":
                 conv_res = convert_doc_to_docx(actual_path, output_dir=doc_dir)
                 if not conv_res.success:
                     raise ValueError(f"DOC conversion failed: {conv_res.error_message}")
                 actual_path = Path(conv_res.converted_path)
-                
+
             result = extract_docx(actual_path, doc_id, filename, str(DEMO_PROCESSED))
             chunks = create_chunks(result.full_text, doc_id)
-            
+
             chunk_count = len(chunks)
             modality_tags = ["text"]
-            if len(result.extracted_images) > 0:
+            extracted_images = result.extracted_images
+            if len(extracted_images) > 0:
                 modality_tags.append("image")
-                
+
             previews["text_preview"] = result.full_text[:1000]
             previews["chunk_previews"] = [c.text for c in chunks[:5]]
-            summary = f"Extracted {len(result.text_blocks)} blocks, {len(result.extracted_images)} images, and generated {chunk_count} text chunks."
-            
+            summary = f"Extracted {len(result.text_blocks)} blocks, {len(extracted_images)} images, and generated {chunk_count} text chunks."
+
         elif source_type == DocumentSourceType.image:
             from backend.processors.vision_processor import process_image
-            result = process_image(Path(file_path), doc_id, filename)
-            
-            chunk_count = 2 # 1 CLIP image and 1 LLaVA text description chunk
+            vision_result = process_image(Path(file_path), doc_id, filename)
+
+            chunk_count = 2
             modality_tags = ["image", "text"]
-            
-            previews["text_preview"] = result.llava_description or "No LLaVA description available."
-            previews["llava_description"] = result.llava_description
+
+            previews["text_preview"] = vision_result.llava_description or "No LLaVA description available."
+            previews["llava_description"] = vision_result.llava_description
             previews["chunk_previews"] = [
                 f"CLIP Image Chunk (512-dim embedding representation)",
-                f"LLaVA Text Description Chunk: {result.llava_description[:200]}..." if result.llava_description else "LLaVA failed."
+                f"LLaVA Text Description Chunk: {vision_result.llava_description[:200]}..." if vision_result.llava_description else "LLaVA failed."
             ]
-            summary = f"Image processed with CLIP (status: {result.clip_status}) and LLaVA (status: {result.llava_status})."
-            
+            summary = f"Image processed with CLIP (status: {vision_result.clip_status}) and LLaVA (status: {vision_result.llava_status})."
+
         elif source_type == DocumentSourceType.audio:
             from backend.processors.audio_converter import normalize_audio
             from backend.processors.audio_processor import transcribe_audio
-            
+
             norm_res = normalize_audio(Path(file_path), doc_id, str(DEMO_PROCESSED))
             if not norm_res.success:
                 raise ValueError(f"Audio normalization failed: {norm_res.error_message}")
-                
-            result = transcribe_audio(norm_res.normalized_path, doc_id, filename)
-            
-            # 1. Assembled transcript from result.segments safely
+
+            audio_result = transcribe_audio(norm_res.normalized_path, doc_id, filename)
+
             full_text = " ".join(
                 s.transcript_text.strip()
-                for s in result.segments
+                for s in audio_result.segments
                 if getattr(s, "transcript_text", None)
             ).strip()
-            
-            chunk_count = len(result.segments)
+
+            chunk_count = len(audio_result.segments)
             modality_tags = ["audio", "text"]
-            
+
             previews["text_preview"] = full_text
             previews["audio_transcription"] = full_text
             previews["audio_segments"] = [
@@ -621,65 +643,182 @@ def process_document_bg(doc_id: str, file_path: str, filename: str, source_type:
                     "start_seconds": s.start_seconds,
                     "end_seconds": s.end_seconds,
                     "transcript_text": getattr(s, "transcript_text", "")
-                } for s in result.segments
+                } for s in audio_result.segments
             ]
             previews["chunk_previews"] = [
                 f"[{getattr(s, 'start_seconds', 0.0):.2f}s - {getattr(s, 'end_seconds', 0.0):.2f}s]: {getattr(s, 'transcript_text', '')}"
-                for s in result.segments[:5]
+                for s in audio_result.segments[:5]
             ]
-            detected_lang = getattr(result, "language", None) or "unknown"
+            detected_lang = getattr(audio_result, "language", None) or "unknown"
             summary = f"Audio normalized (mono 16kHz) and transcribed (detected language: {detected_lang}) into {chunk_count} segments."
-            
+
         elif source_type == DocumentSourceType.text_note:
             from backend.processors.chunker import create_chunks
             with open(file_path, "r", encoding="utf-8") as f:
                 text_content = f.read()
             chunks = create_chunks(text_content, doc_id)
-            
+
             chunk_count = len(chunks)
             modality_tags = ["text"]
             previews["text_preview"] = text_content
             previews["chunk_previews"] = [c.text for c in chunks[:5]]
             summary = f"Text note chunked into {chunk_count} text chunks."
 
-        # Simulate text embeddings checking to ensure it works
-        try:
-            from backend.embeddings.text_embedder import get_text_embedder
-            embedder = get_text_embedder()
-            if previews["chunk_previews"]:
-                embedder.embed(previews["chunk_previews"][0][:100])
-        except Exception as e:
-            logger.warning(f"Embedding simulation check skipped or failed: {e}")
-
-        # 3. Save local metadata.json
-        meta_data = {
-            "processed_at": datetime.now(timezone.utc).isoformat(),
-            "modality_tags": modality_tags,
-            "chunk_count": chunk_count,
-            "summary": summary,
-            "previews": previews,
-            "embedding_status": "384-dim SentenceTransformer embeddings verified" if "text" in modality_tags or "audio" in modality_tags else "512-dim CLIP + 384-dim LLaVA description embeddings verified"
-        }
-        
-        with open(doc_dir / "metadata.json", "w", encoding="utf-8") as f:
-            json.dump(meta_data, f, indent=2)
-            
-        # 4. Update SQLite status to completed
+        # 3. Update ingestion status to completed (extraction done)
         with get_session() as session:
             doc = session.get(SourceDocument, doc_id)
             if doc:
                 doc.ingestion_status = JobStatus.completed
                 session.add(doc)
                 session.commit()
-                
+
+        # ================================================================
+        # Phase 3: Qdrant indexing
+        # ================================================================
+        with get_session() as session:
+            doc = session.get(SourceDocument, doc_id)
+            if doc:
+                doc.indexing_status = IndexingStatus.indexing
+                session.add(doc)
+                session.commit()
+
+        try:
+            # --- Index text chunks (PDF, DOCX, text_note) ---
+            if chunks:
+                record_source = {
+                    DocumentSourceType.pdf: RecordSourceType.pdf,
+                    DocumentSourceType.docx: RecordSourceType.docx,
+                    DocumentSourceType.doc: RecordSourceType.doc,
+                    DocumentSourceType.text_note: RecordSourceType.text_note,
+                }.get(source_type, RecordSourceType.text_note)
+
+                text_result = index_text_chunks(
+                    chunks, doc_id, record_source, filename
+                )
+                indexing_results.append(text_result)
+                indexing_warnings.extend(text_result.get("warnings", []))
+
+            # --- Index standalone image ---
+            if vision_result:
+                img_result = index_image(
+                    vision_result,
+                    doc_id,
+                    clip_source_type=RecordSourceType.image,
+                    desc_source_type=RecordSourceType.image_description,
+                    original_filename=filename,
+                )
+                indexing_results.append(img_result)
+                indexing_warnings.extend(img_result.get("warnings", []))
+
+            # --- Index extracted images from PDF/DOCX ---
+            if extracted_images:
+                from backend.processors.vision_processor import process_image as _process_img
+                max_images = settings.max_images_per_document
+                images_to_process = extracted_images[:max_images]
+                if len(extracted_images) > max_images:
+                    indexing_warnings.append(
+                        f"Image cap reached: processing {max_images} of "
+                        f"{len(extracted_images)} extracted images"
+                    )
+
+                # Determine source types based on parent document
+                if source_type == DocumentSourceType.pdf:
+                    clip_st = RecordSourceType.pdf_extracted_image
+                    desc_st = RecordSourceType.pdf_image_description
+                else:
+                    clip_st = RecordSourceType.image
+                    desc_st = RecordSourceType.image_description
+
+                for idx, ext_img in enumerate(images_to_process):
+                    try:
+                        vis_res = _process_img(
+                            Path(ext_img.image_path),
+                            doc_id,
+                            ext_img.original_filename,
+                            page_number=ext_img.page_number,
+                        )
+                        ei_result = index_image(
+                            vis_res, doc_id,
+                            clip_source_type=clip_st,
+                            desc_source_type=desc_st,
+                            original_filename=ext_img.original_filename,
+                            image_index=idx,
+                        )
+                        indexing_results.append(ei_result)
+                        indexing_warnings.extend(ei_result.get("warnings", []))
+                    except Exception as img_err:
+                        indexing_warnings.append(
+                            f"Image {idx} ({ext_img.original_filename}) indexing failed: {img_err}"
+                        )
+                        logger.warning("Image indexing failed: %s", img_err)
+
+            # --- Index audio segments ---
+            if audio_result:
+                audio_idx_result = index_audio_segments(
+                    audio_result.segments, doc_id, filename
+                )
+                indexing_results.append(audio_idx_result)
+                indexing_warnings.extend(audio_idx_result.get("warnings", []))
+
+            # --- Determine final indexing status ---
+            total_indexed = sum(r.get("indexed", 0) for r in indexing_results)
+            any_partial = any(
+                r.get("status") == "completed_with_warnings"
+                for r in indexing_results
+            )
+
+            if total_indexed == 0:
+                final_idx_status = IndexingStatus.failed
+            elif indexing_warnings or any_partial:
+                final_idx_status = IndexingStatus.completed_with_warnings
+            else:
+                final_idx_status = IndexingStatus.indexed
+
+            with get_session() as session:
+                doc = session.get(SourceDocument, doc_id)
+                if doc:
+                    doc.indexing_status = final_idx_status
+                    if indexing_warnings:
+                        doc.indexing_error_message = "; ".join(indexing_warnings[:10])
+                    session.add(doc)
+                    session.commit()
+
+        except Exception as idx_err:
+            logger.error(f"Indexing failed for {doc_id}: {idx_err}", exc_info=True)
+            with get_session() as session:
+                doc = session.get(SourceDocument, doc_id)
+                if doc:
+                    doc.indexing_status = IndexingStatus.failed
+                    doc.indexing_error_message = str(idx_err)
+                    session.add(doc)
+                    session.commit()
+
+        # 4. Save local metadata.json
+        total_indexed = sum(r.get("indexed", 0) for r in indexing_results)
+        meta_data = {
+            "processed_at": datetime.now(timezone.utc).isoformat(),
+            "modality_tags": modality_tags,
+            "chunk_count": chunk_count,
+            "summary": summary,
+            "previews": previews,
+            "indexing": {
+                "total_points_indexed": total_indexed,
+                "warnings": indexing_warnings,
+            },
+        }
+
+        with open(doc_dir / "metadata.json", "w", encoding="utf-8") as f:
+            json.dump(meta_data, f, indent=2)
+
     except Exception as err:
         logger.error(f"Error processing document {doc_id}: {err}", exc_info=True)
-        # 5. Update SQLite status to failed
         with get_session() as session:
             doc = session.get(SourceDocument, doc_id)
             if doc:
                 doc.ingestion_status = JobStatus.failed
                 doc.error_message = str(err)
+                doc.indexing_status = IndexingStatus.failed
+                doc.indexing_error_message = str(err)
                 session.add(doc)
                 session.commit()
 
@@ -710,9 +849,11 @@ async def demo_get_library():
                 "created_at": d.created_at.isoformat() if d.created_at else None,
                 "ingestion_status": d.ingestion_status,
                 "error_message": d.error_message,
+                "indexing_status": d.indexing_status,
+                "indexing_error_message": d.indexing_error_message,
                 "metadata": meta
             })
-            
+
         return result_docs
 
 @router.post("/library/upload")
@@ -805,19 +946,25 @@ async def demo_upload_library(
 
 @router.delete("/library/{doc_id}")
 async def demo_delete_library_doc(doc_id: str):
-    """Delete a document from SQLite and delete its local directory."""
+    """Delete a document, its Qdrant points, IndexedRecords, and local files."""
     with get_session() as session:
         doc = session.get(SourceDocument, doc_id)
         if not doc:
             raise HTTPException(status_code=404, detail="Document not found")
-        
+
+        # Phase 3: Clean Qdrant points and IndexedRecords
+        try:
+            delete_indexed_records(doc_id)
+        except Exception as err:
+            logger.error(f"Failed to delete indexed records for {doc_id}: {err}")
+
         # Delete original upload file if it exists
         if doc.file_path and Path(doc.file_path).exists():
             try:
                 os.remove(doc.file_path)
             except Exception as err:
                 logger.error(f"Failed to delete upload file: {err}")
-                
+
         # Delete processed directory
         proc_dir = DEMO_PROCESSED / doc_id
         if proc_dir.exists() and proc_dir.is_dir():
@@ -825,25 +972,31 @@ async def demo_delete_library_doc(doc_id: str):
                 shutil.rmtree(proc_dir)
             except Exception as err:
                 logger.error(f"Failed to delete processed dir: {err}")
-                
+
         session.delete(doc)
         session.commit()
-        
+
     return {"status": "success", "message": f"Document {doc_id} deleted."}
 
 @router.post("/library/clear")
 async def demo_clear_library():
-    """Clear all documents and directories in the library."""
+    """Clear all documents, Qdrant points, IndexedRecords, and local files."""
     with get_session() as session:
         docs = session.exec(select(SourceDocument)).all()
         for doc in docs:
+            # Phase 3: Clean Qdrant points and IndexedRecords
+            try:
+                delete_indexed_records(doc.source_document_id)
+            except Exception as err:
+                logger.error(f"Failed to delete indexed records: {err}")
+
             # Delete upload file
             if doc.file_path and Path(doc.file_path).exists():
                 try:
                     os.remove(doc.file_path)
                 except Exception as err:
                     logger.error(f"Failed to delete upload file: {err}")
-            
+
             # Delete processed directory
             proc_dir = DEMO_PROCESSED / doc.source_document_id
             if proc_dir.exists() and proc_dir.is_dir():
@@ -851,8 +1004,90 @@ async def demo_clear_library():
                     shutil.rmtree(proc_dir)
                 except Exception as err:
                     logger.error(f"Failed to delete processed dir: {err}")
-                    
+
             session.delete(doc)
         session.commit()
-        
+
     return {"status": "success", "message": "Library cleared successfully."}
+
+
+# ---------------------------------------------------------------------------
+# Phase 3: Re-indexing & Index Status
+# ---------------------------------------------------------------------------
+
+
+@router.post("/library/{doc_id}/reindex")
+async def demo_reindex_document(background_tasks: BackgroundTasks, doc_id: str):
+    """Re-index a document: delete existing Qdrant points, re-extract and re-index.
+
+    Safe re-indexing flow:
+        1. Mark indexing_status = indexing
+        2. Delete Qdrant points (wait=True)
+        3. Verify point count = 0
+        4. Remove old IndexedRecords
+        5. Re-run extraction + indexing in background
+        6. Set final indexing_status after completion
+    """
+    with get_session() as session:
+        doc = session.get(SourceDocument, doc_id)
+        if not doc:
+            raise HTTPException(status_code=404, detail="Document not found")
+
+        if doc.ingestion_status != JobStatus.completed:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Document must be processed first (current: {doc.ingestion_status})"
+            )
+
+        # Step 1: Mark as indexing
+        doc.indexing_status = IndexingStatus.indexing
+        doc.indexing_error_message = None
+        session.add(doc)
+        session.commit()
+
+        file_path = doc.file_path
+        filename = doc.original_filename
+        source_type = doc.source_type
+
+    # Steps 2-4: Delete existing indexed records
+    try:
+        delete_indexed_records(doc_id)
+    except Exception as err:
+        logger.error(f"Failed to delete indexed records during reindex: {err}")
+        with get_session() as session:
+            doc = session.get(SourceDocument, doc_id)
+            if doc:
+                doc.indexing_status = IndexingStatus.failed
+                doc.indexing_error_message = f"Deletion failed: {err}"
+                session.add(doc)
+                session.commit()
+        raise HTTPException(status_code=500, detail=f"Failed to clean old index: {err}")
+
+    # Steps 5-6: Re-run full processing in background
+    background_tasks.add_task(
+        process_document_bg,
+        doc_id=doc_id,
+        file_path=file_path,
+        filename=filename,
+        source_type=source_type,
+    )
+
+    return {
+        "source_document_id": doc_id,
+        "indexing_status": IndexingStatus.indexing,
+        "message": "Re-indexing started in background.",
+    }
+
+
+@router.get("/library/{doc_id}/index-status")
+async def demo_get_index_status(doc_id: str):
+    """Return indexing statistics for a document."""
+    with get_session() as session:
+        doc = session.get(SourceDocument, doc_id)
+        if not doc:
+            raise HTTPException(status_code=404, detail="Document not found")
+
+    stats = get_index_status(doc_id)
+    stats["indexing_status"] = doc.indexing_status
+    stats["indexing_error_message"] = doc.indexing_error_message
+    return stats

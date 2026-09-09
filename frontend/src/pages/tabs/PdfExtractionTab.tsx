@@ -79,8 +79,8 @@ export default function PdfExtractionTab() {
             <Metric label="Total Chunks" value={result.total_chunk_count} icon={AlignLeft} />
           </div>
           
-          <div className="p-3 bg-status-warning-bg border border-status-warning text-status-warning rounded text-sm text-center">
-            Extracted only — Qdrant indexing is Phase 3.
+          <div className="p-3 bg-status-success-bg border border-status-success text-status-success rounded text-sm text-center">
+            Extracted &amp; chunked. Upload via Knowledge Base for automatic Qdrant indexing.
           </div>
 
           <div className="space-y-4">

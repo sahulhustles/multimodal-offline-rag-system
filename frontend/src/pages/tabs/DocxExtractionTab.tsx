@@ -79,8 +79,8 @@ export default function DocxExtractionTab() {
             <Metric label="Embedded Images" value={result.embedded_image_count} icon={ImageIcon} />
           </div>
           
-          <div className="p-3 bg-status-warning-bg border border-status-warning text-status-warning rounded text-sm text-center">
-            Extracted only — Qdrant indexing is Phase 3.
+          <div className="p-3 bg-status-success-bg border border-status-success text-status-success rounded text-sm text-center">
+            Extracted &amp; chunked. Upload via Knowledge Base for automatic Qdrant indexing.
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

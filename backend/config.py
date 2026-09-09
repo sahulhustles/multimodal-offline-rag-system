@@ -63,6 +63,14 @@ class Settings(BaseSettings):
     chunk_size_tokens: int = 512
     chunk_overlap_tokens: int = 50
 
+    # --- Indexing (Phase 3) ---
+    max_images_per_document: int = 50
+    qdrant_upsert_batch_size: int = 64
+
+    # --- Retrieval (Phase 4) ---
+    retrieval_top_k: int = 5
+    retrieval_score_threshold: float = 0.0
+
     # --- Server ---
     backend_host: str = "0.0.0.0"
     backend_port: int = 8000

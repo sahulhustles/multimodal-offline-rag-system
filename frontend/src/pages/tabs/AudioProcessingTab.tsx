@@ -102,9 +102,9 @@ export default function AudioProcessingTab() {
             <Metric label="Segments" value={result.segment_count} icon={AlignLeft} />
           </div>
           
-          <div className="p-3 bg-status-warning-bg border border-status-warning text-status-warning rounded text-sm flex flex-col sm:flex-row items-center justify-between">
-            <span>Timestamped segments are prepared for text embedding and Phase 3 indexing.</span>
-            <span className="font-semibold mt-2 sm:mt-0 whitespace-nowrap">Not indexed in Qdrant</span>
+          <div className="p-3 bg-status-success-bg border border-status-success text-status-success rounded text-sm flex flex-col sm:flex-row items-center justify-between">
+            <span>Timestamped segments are embedded and indexed in Qdrant via Knowledge Base upload.</span>
+            <span className="font-semibold mt-2 sm:mt-0 whitespace-nowrap">Processor Lab preview only</span>
           </div>
 
           <div className="space-y-4">

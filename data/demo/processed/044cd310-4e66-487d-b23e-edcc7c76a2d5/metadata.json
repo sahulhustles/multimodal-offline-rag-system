@@ -1,0 +1,19 @@
+{
+  "processed_at": "2026-09-08T23:41:26.563215+00:00",
+  "modality_tags": [
+    "text"
+  ],
+  "chunk_count": 2,
+  "summary": "Extracted 1 pages, 0 images, and generated 2 text chunks.",
+  "previews": {
+    "text_preview": "Computer Science Engineering student passionate about backend systems, scalable\nAPIs, AI-powered applications, and cloud technologies. Experienced in building full-\nstack and performance-focused projects using Spring Boot, Node.js, Redis, and\nReact. Seeking software engineering opportunities to appl",
+    "chunk_previews": [
+      "computer science engineering student passionate about backend systems, scalable apis, ai - powered applications, and cloud technologies. experienced in building full - stack and performance - focused projects using spring boot, node. js, redis, and react. seeking software engineering opportunities to apply problem - solving and system design skills. professional summary experience accento techno soft 2024 may ( python developer intern ) developed an ai - powered business plan generator using python, integrating nlp / ai apis to generate structured business strategies. built an interactive interface using streamlit / flask and implemented data processing techniques to improve output accuracy. technical skills languages : c + +, java ( basics ), python ( basics ) web development : html, css, javascript, react ( basics ), bootstrap backend : spring boot, rest apis, redis tools & technologies : git, github, postman, docker ( basics ), aws ( basics ) soft skills : communication, teamwork, problem solving, quick learning, adaptability sahul hameed associate engineer sri krishna college of technology education b. e. computer science and engineering | cgpa : 6. 91 2023 - 2027 coimbatore smbm national public school higher secondary school education ( hsc ) | 76. 8 % 2023 dindigul employee attendance system \u2013 rest api project built a rest api using java and spring boot to manage employee details and attendance. implemented crud endpoints and operations for storing and retrieving data projects ai business plan generator \u2013 ai web app built and deployed a streamlit + python ai application using grok api to generate complete business plans from user inputs, with downloadable outputs ( pdf / docx ) ; live at : https : / / aibusinessplangenerator. streamlit. app / + 91 93447 95839 b. sahulhameed1 @ gmail. com coimbatore, tamilnadu linkedin. com / in / sahul - hameed - 83b2a3293 / github. com / sahulhustles cacheflow \u2013 high - performance api caching & analytics engine developed a low - latency api caching engine using node. js and fastify, integrating redis to reduce repeated request response times by over 90 %. live at : https : / / cacheflow - engine. onrender. com / docs | real - time observability dashboard - https : / / cacheflow",
+      "integrating redis to reduce repeated request response times by over 90 %. live at : https : / / cacheflow - engine. onrender. com / docs | real - time observability dashboard - https : / / cacheflow - engine. onrender. com / dashboard /"
+    ]
+  },
+  "indexing": {
+    "total_points_indexed": 2,
+    "warnings": []
+  }
+}

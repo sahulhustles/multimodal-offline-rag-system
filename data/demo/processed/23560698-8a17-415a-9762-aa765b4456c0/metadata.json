@@ -1,0 +1,21 @@
+{
+  "processed_at": "2026-09-08T23:20:36.002090+00:00",
+  "modality_tags": [
+    "image",
+    "text"
+  ],
+  "chunk_count": 2,
+  "summary": "Image processed with CLIP (status: completed) and LLaVA (status: completed).",
+  "previews": {
+    "text_preview": "The image is a composite of two photographs, one of a sky and clouds and the other of a rocket launchpad. The sky photograph is on the left, showing a clear blue sky with a large cumulus cloud near the horizon. The rocket launchpad photograph is on the right, depicting a vertical assembly of a rocket with a payload on top, set against the same blue sky with a similar cloud formation. The transition between the two images is seamless, creating a coherent scene that is both real and digitally altered. There are no visible texts, objects, or other elements in the image. The colors are naturalistic with the blues of the sky and the grays of the rocket. The spatial relationship between the sky and the rocket launchpad is that they are both parts of the same image, connected in the center.",
+    "chunk_previews": [
+      "CLIP Image Chunk (512-dim embedding representation)",
+      "LLaVA Text Description Chunk: The image is a composite of two photographs, one of a sky and clouds and the other of a rocket launchpad. The sky photograph is on the left, showing a clear blue sky with a large cumulus cloud near th..."
+    ],
+    "llava_description": "The image is a composite of two photographs, one of a sky and clouds and the other of a rocket launchpad. The sky photograph is on the left, showing a clear blue sky with a large cumulus cloud near the horizon. The rocket launchpad photograph is on the right, depicting a vertical assembly of a rocket with a payload on top, set against the same blue sky with a similar cloud formation. The transition between the two images is seamless, creating a coherent scene that is both real and digitally altered. There are no visible texts, objects, or other elements in the image. The colors are naturalistic with the blues of the sky and the grays of the rocket. The spatial relationship between the sky and the rocket launchpad is that they are both parts of the same image, connected in the center."
+  },
+  "indexing": {
+    "total_points_indexed": 2,
+    "warnings": []
+  }
+}

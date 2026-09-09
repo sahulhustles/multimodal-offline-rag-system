@@ -24,7 +24,7 @@ export default function SidebarNavigation({ onClose, isMobile }: SidebarProps) {
           <FlaskConical className="w-5 h-5 text-brand" />
           Offline RAG Demo
         </h1>
-        <p className="text-xs text-text-muted mt-1 font-mono uppercase tracking-wider font-semibold">Phase 1 & 2 Demonstrator</p>
+        <p className="text-xs text-text-muted mt-1 font-mono uppercase tracking-wider font-semibold">Phase 1 – 3 Active</p>
       </div>
       
       <nav className="flex-1 py-4 px-2 space-y-1 overflow-y-auto">

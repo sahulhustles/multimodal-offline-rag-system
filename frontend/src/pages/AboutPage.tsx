@@ -32,8 +32,8 @@ export default function AboutPage() {
                 <div><span className="font-medium text-text-main">Phase 2 Complete</span> <span className="text-text-muted">— Processing Components (Chunking, Embedding, LLaVA, Whisper)</span></div>
               </li>
               <li className="flex items-center gap-3">
-                <div className="w-4 h-4 rounded-full bg-status-warning flex-shrink-0"></div>
-                <div><span className="font-medium text-text-main">Phase 3 Planned</span> <span className="text-text-muted">— Qdrant Indexing & Cross-modal Links</span></div>
+                <div className="w-4 h-4 rounded-full bg-status-success flex-shrink-0"></div>
+                <div><span className="font-medium text-text-main">Phase 3 Complete</span> <span className="text-text-muted">— Qdrant Indexing & Cross-modal Links</span></div>
               </li>
               <li className="flex items-center gap-3">
                 <div className="w-4 h-4 rounded-full bg-[#444] border border-[#555] flex-shrink-0"></div>
@@ -61,7 +61,7 @@ export default function AboutPage() {
             <li><strong>Description Record:</strong> Processed via LLaVA to generate a rich text description, which is then embedded via Sentence Transformers to a 384-dimensional vector.</li>
           </ul>
           <p className="text-sm text-text-muted leading-relaxed mt-3 bg-surface-hover p-3 rounded border border-border">
-            During Phase 3, these two points will be stored in Qdrant and linked together, allowing text queries to seamlessly retrieve highly relevant images through both semantic text matching and direct CLIP embedding matching.
+            These two points are stored in Qdrant and linked together via deterministic UUIDv5 IDs, allowing text queries to seamlessly retrieve highly relevant images through both semantic text matching and direct CLIP embedding matching.
           </p>
         </section>
 

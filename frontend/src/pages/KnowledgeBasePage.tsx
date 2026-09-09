@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { Library, Upload, Trash2, RefreshCw, AlertCircle, FileText, CheckCircle2, X, Layers, Plus } from 'lucide-react'
+import { Library, Upload, Trash2, RefreshCw, AlertCircle, FileText, CheckCircle2, X, Layers, Plus, Database, AlertTriangle } from 'lucide-react'
 import { demoApi } from '../api/client'
 import clsx from 'clsx'
 
@@ -8,6 +8,7 @@ export default function KnowledgeBasePage() {
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
   const [selectedDoc, setSelectedDoc] = useState<any>(null)
+  const [reindexing, setReindexing] = useState<string | null>(null)
   
   // Text Note Form State
   const [showNoteModal, setShowNoteModal] = useState(false)
@@ -48,6 +49,7 @@ export default function KnowledgeBasePage() {
   useEffect(() => {
     const hasActiveJobs = documents.some(
       doc => doc.ingestion_status === 'queued' || doc.ingestion_status === 'processing'
+        || doc.indexing_status === 'indexing'
     )
 
     if (hasActiveJobs) {
@@ -57,6 +59,18 @@ export default function KnowledgeBasePage() {
       return () => clearInterval(interval)
     }
   }, [documents])
+
+  const handleReindex = async (docId: string) => {
+    setReindexing(docId)
+    try {
+      await demoApi.reindexDocument(docId)
+      await fetchDocuments(false)
+    } catch (err) {
+      alert('Re-index failed: ' + err)
+    } finally {
+      setReindexing(null)
+    }
+  }
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files
@@ -263,7 +277,8 @@ export default function KnowledgeBasePage() {
                       <th className="p-3 w-16 text-center">Format</th>
                       <th className="p-3">Source Name</th>
                       <th className="p-3 w-28">File Size</th>
-                      <th className="p-3 w-32">Status</th>
+                      <th className="p-3 w-32">Processing</th>
+                      <th className="p-3 w-32">Indexing</th>
                       <th className="p-3 w-24">Chunks</th>
                       <th className="p-3 w-12"></th>
                     </tr>
@@ -300,6 +315,18 @@ export default function KnowledgeBasePage() {
                               doc.ingestion_status === 'failed' && "bg-status-error-bg text-status-error border border-status-error"
                             )}>
                               {doc.ingestion_status}
+                            </span>
+                          </td>
+                          <td className="p-3">
+                            <span className={clsx(
+                              "px-2.5 py-1 rounded-sm text-xs font-bold uppercase tracking-wider font-mono inline-flex items-center gap-1",
+                              doc.indexing_status === 'indexed' && "bg-[#064e3b]/20 text-[#10b981] border border-[#10b981]/40",
+                              doc.indexing_status === 'indexing' && "bg-status-warning-bg text-status-warning border border-status-warning animate-pulse",
+                              doc.indexing_status === 'completed_with_warnings' && "bg-[#78350f]/20 text-[#f59e0b] border border-[#f59e0b]/40",
+                              doc.indexing_status === 'failed' && "bg-status-error-bg text-status-error border border-status-error",
+                              doc.indexing_status === 'not_started' && "bg-surface-secondary text-text-muted border border-border-light",
+                            )}>
+                              {doc.indexing_status === 'not_started' ? 'pending' : doc.indexing_status?.replace('_', ' ')}
                             </span>
                           </td>
                           <td className="p-3 text-text-muted font-mono">
@@ -416,12 +443,12 @@ export default function KnowledgeBasePage() {
               </div>
 
               <div className="border-t border-border/50 pt-3">
-                <label className="label-text">Status Summary</label>
+                <label className="label-text">Processing Status</label>
                 <div className="text-xs font-semibold text-text-main mt-1 flex items-center gap-1.5">
                   {selectedDoc.ingestion_status === 'completed' && (
                     <>
                       <CheckCircle2 className="w-4 h-4 text-status-success shrink-0" />
-                      <span>Phase 2: Processed locally</span>
+                      <span>Processed locally</span>
                     </>
                   )}
                   {selectedDoc.ingestion_status === 'processing' && (
@@ -443,11 +470,78 @@ export default function KnowledgeBasePage() {
                     </>
                   )}
                 </div>
-                
-                {selectedDoc.ingestion_status === 'completed' && (
-                  <div className="text-xs font-bold text-brand uppercase tracking-wider mt-1.5">
-                    Ready for future retrieval (Phase 3 next)
+              </div>
+
+              {/* Phase 3: Qdrant Indexing Status */}
+              <div className="border-t border-border/50 pt-3">
+                <label className="label-text">Qdrant Indexing Status</label>
+                <div className="text-xs font-semibold text-text-main mt-1 flex items-center gap-1.5">
+                  {selectedDoc.indexing_status === 'indexed' && (
+                    <>
+                      <Database className="w-4 h-4 text-[#10b981] shrink-0" />
+                      <span className="text-[#10b981]">Indexed in Qdrant</span>
+                    </>
+                  )}
+                  {selectedDoc.indexing_status === 'indexing' && (
+                    <>
+                      <RefreshCw className="w-4 h-4 text-status-warning animate-spin shrink-0" />
+                      <span>Indexing vectors...</span>
+                    </>
+                  )}
+                  {selectedDoc.indexing_status === 'completed_with_warnings' && (
+                    <>
+                      <AlertTriangle className="w-4 h-4 text-[#f59e0b] shrink-0" />
+                      <span className="text-[#f59e0b]">Indexed with warnings</span>
+                    </>
+                  )}
+                  {selectedDoc.indexing_status === 'not_started' && (
+                    <>
+                      <Layers className="w-4 h-4 text-text-muted shrink-0" />
+                      <span className="text-text-muted">Not yet indexed</span>
+                    </>
+                  )}
+                  {selectedDoc.indexing_status === 'failed' && (
+                    <>
+                      <AlertCircle className="w-4 h-4 text-status-error shrink-0" />
+                      <span className="text-status-error">Indexing failed</span>
+                    </>
+                  )}
+                </div>
+
+                {selectedDoc.indexing_error_message && (
+                  <div className="text-xs text-status-error mt-1 p-2 bg-status-error-bg border border-status-error/30 font-mono">
+                    {selectedDoc.indexing_error_message}
                   </div>
+                )}
+
+                {/* Indexing stats from metadata */}
+                {selectedDoc.metadata?.indexing && (
+                  <div className="mt-2 p-2 bg-surface-secondary border border-border-light text-xs font-mono space-y-1">
+                    <div className="flex justify-between">
+                      <span className="text-text-muted">Qdrant Points:</span>
+                      <span className="text-text-main font-bold">{selectedDoc.metadata.indexing.total_points_indexed ?? 0}</span>
+                    </div>
+                    {selectedDoc.metadata.indexing.warnings?.length > 0 && (
+                      <div className="text-[#f59e0b] mt-1">
+                        {selectedDoc.metadata.indexing.warnings.length} warning(s)
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Re-index button */}
+                {selectedDoc.ingestion_status === 'completed' && selectedDoc.indexing_status !== 'indexing' && (
+                  <button
+                    onClick={() => handleReindex(selectedDoc.source_document_id)}
+                    disabled={reindexing === selectedDoc.source_document_id}
+                    className="mt-2 w-full btn-secondary text-xs flex items-center justify-center gap-2"
+                  >
+                    {reindexing === selectedDoc.source_document_id ? (
+                      <><RefreshCw className="w-3.5 h-3.5 animate-spin" /> Re-indexing...</>
+                    ) : (
+                      <><Database className="w-3.5 h-3.5" /> Re-index in Qdrant</>
+                    )}
+                  </button>
                 )}
               </div>
 
@@ -458,15 +552,9 @@ export default function KnowledgeBasePage() {
                 </div>
               )}
 
+
               {selectedDoc.metadata && (
                 <div className="space-y-4 border-t border-border/50 pt-3">
-                  <div>
-                    <label className="label-text">Model Verification</label>
-                    <div className="text-xs text-text-main font-mono p-2 bg-surface-secondary border border-border-light">
-                      {selectedDoc.metadata.embedding_status}
-                    </div>
-                  </div>
-
                   <div>
                     <label className="label-text">Pipeline summary</label>
                     <p className="text-xs text-text-main bg-surface-secondary p-2.5 border border-border-light leading-relaxed">

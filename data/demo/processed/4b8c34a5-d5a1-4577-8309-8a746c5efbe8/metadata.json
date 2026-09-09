@@ -1,0 +1,18 @@
+{
+  "processed_at": "2026-09-08T23:41:26.445915+00:00",
+  "modality_tags": [
+    "text"
+  ],
+  "chunk_count": 1,
+  "summary": "Extracted 1 pages, 0 images, and generated 1 text chunks.",
+  "previews": {
+    "text_preview": " \nCoimbatore, Tamilnadu | sahulhustler@gmail.com | sahulworks.me | +91 9344795839\nPortfolio Website (sahulworks.me)\nPROJECTS\nBuilt and deployed a Python and Streamlit application that generates structured business\nplans from user inputs using Grok AI API.\nEnabled downloadable PDF and DOCX report gen",
+    "chunk_previews": [
+      "coimbatore, tamilnadu | sahulhustler @ gmail. com | sahulworks. me | + 91 9344795839 portfolio website ( sahulworks. me ) projects built and deployed a python and streamlit application that generates structured business plans from user inputs using grok ai api. enabled downloadable pdf and docx report generation to deliver polished, shareable business documents. ai business plan generator \u2013 ai web app developed a responsive personal portfolio website to showcase projects, skills, certifications, and contact details with a clean, professional user experience. integrated mongodb for dynamic data management, making the site scalable, organized, and suitable for real - world deployment. < > languages web backend c + +, java, python ( basics ) javascript, react ( basics ), bootstrap, node. js, express. js, mongodb, mysql, spring boot, rest apis tools & technologies git, github, postman, docker ( basics ), aws ( basics ) databases mysql, mongo db skills sahul hameed. b career objective a student in computer science engineering with a strong background in programming, restful api development, and software problem - solving is looking for a node. js developer job to help build scalable backend applications. excited to use technical skills in server - side development, debugging, and working with others to deliver software while continuing to learn the best ways to do things in the industry. profiles linkedin github hacker rank sahul - hameed sahulhustles sahul _ coder _ 29 smbm national public school, dindigul computer - mathematics sri krishna college of technology computer science and engineering higher secondary education 2022 dindigul, tamilnadu education bachelor of engineering ( 2023 - 2027 ) coimbatore, tamilnadu accent techno soft ( ats ) \u2014 coimbatore, tamilnadu summer intern \u2013 python web app development | 30 days internships"
+    ]
+  },
+  "indexing": {
+    "total_points_indexed": 1,
+    "warnings": []
+  }
+}

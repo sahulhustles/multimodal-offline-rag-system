@@ -40,7 +40,6 @@ export default function ArchitecturePage() {
             <Node title="Text Extractor" desc="PyMuPDF / python-docx. 512/50 token sliding window." />
             <Node title="Vision Encoder" desc="CLIP 512-d + LLaVA text description (384-d)." />
             <Node title="Audio Transcriber" desc="faster-whisper large-v3 int8. Offline speech-to-text." />
-            <FutureNode title="Query Encoder" desc="CLIP + text embedding, dual encoder." />
           </div>
         </div>
 
@@ -49,27 +48,45 @@ export default function ArchitecturePage() {
 
         {/* INDEX */}
         <div className="flex-1 min-w-[250px] border-2 border-border bg-surface overflow-hidden flex flex-col">
-          <div className="bg-status-warning-bg border-b border-status-warning text-status-warning px-4 py-2 font-mono font-bold text-xs uppercase tracking-wider">
-            3. Index (Phase 3 - Next)
+          <div className="bg-status-success-bg border-b border-status-success text-status-success px-4 py-2 font-mono font-bold text-xs uppercase tracking-wider">
+            3. Index (Active)
           </div>
           <div className="p-4 flex-1 space-y-3">
-            <Node title="Unified Vector Store" desc="Qdrant local Docker" />
-            <Node title="Named Vectors" desc="text: 384-d, image: 512-d" />
-            <Node title="Metadata" desc="Cross-modal links & source tracking" />
+            <Node title="Unified Vector Store" desc="Qdrant local Docker. Deterministic UUIDv5 point IDs." />
+            <Node title="Named Vectors" desc="text: 384-d (SentenceTransformer), image: 512-d (CLIP)" />
+            <Node title="Cross-modal Links" desc="Two-linked-record strategy. CLIP + LLaVA description pairs." />
+            <Node title="Payload Indexes" desc="source_document_id, modality, source_type, indexing_status" />
           </div>
         </div>
 
         <ArrowRight className="hidden md:block self-center text-text-muted w-6 h-6 shrink-0" />
         <ArrowDown className="block md:hidden self-center text-text-muted w-6 h-6 shrink-0" />
 
-        {/* RETRIEVE & GENERATE */}
-        <div className="flex-1 min-w-[250px] border-2 border-border bg-surface overflow-hidden flex flex-col opacity-50 border-dashed">
-          <div className="bg-surface-secondary text-text-muted px-4 py-2 font-mono font-bold text-xs uppercase tracking-wider border-b border-border">
-            4. Retrieve & Generate
+        {/* RETRIEVE */}
+        <div className="flex-1 min-w-[250px] border-2 border-border bg-surface overflow-hidden flex flex-col">
+          <div className="bg-status-success-bg border-b border-status-success text-status-success px-4 py-2 font-mono font-bold text-xs uppercase tracking-wider">
+            4. Retrieve (Active)
           </div>
           <div className="p-4 flex-1 space-y-3">
-            <FutureNode title="Retrieved Context" desc="Cross-encoder reranker" />
-            <FutureNode title="Local LLM (Ollama)" desc="Grounded answer with citations" />
+            <Node title="Local Query Encoder" desc="SentenceTransformer 384-d query text vector." />
+            <Node title="Qdrant Text Search" desc="Cosine similarity on text named vector with metadata filters." />
+            <Node title="SQLite Hydration" desc="Full record hydration with cross-modal linked records." />
+            <Node title="Traceable Evidence" desc="Ranked results, scores, timing metrics, zero LLM answer." />
+          </div>
+        </div>
+
+        <ArrowRight className="hidden md:block self-center text-text-muted w-6 h-6 shrink-0" />
+        <ArrowDown className="block md:hidden self-center text-text-muted w-6 h-6 shrink-0" />
+
+        {/* GENERATE */}
+        <div className="flex-1 min-w-[250px] border-2 border-border bg-surface overflow-hidden flex flex-col opacity-50 border-dashed">
+          <div className="bg-status-warning-bg border-b border-status-warning text-status-warning px-4 py-2 font-mono font-bold text-xs uppercase tracking-wider">
+            5. Generate (Next)
+          </div>
+          <div className="p-4 flex-1 space-y-3">
+            <FutureNode title="Context Assembler" desc="Prompt template with retrieved multimodal evidence" />
+            <FutureNode title="Local LLM (Ollama)" desc="Offline answer generation with grounded citations" />
+            <FutureNode title="Conversational Memory" desc="Multi-turn conversation history & follow-ups" />
           </div>
         </div>
       </div>

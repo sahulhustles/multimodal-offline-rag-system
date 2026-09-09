@@ -93,5 +93,41 @@ export const demoApi = {
   clearLibrary: async () => {
     const res = await apiClient.post('/demo/library/clear')
     return res.data
-  }
+  },
+
+  // Phase 3: Indexing controls
+  reindexDocument: async (docId: string) => {
+    const res = await apiClient.post(`/demo/library/${docId}/reindex`)
+    return res.data
+  },
+
+  getIndexStatus: async (docId: string) => {
+    const res = await apiClient.get(`/demo/library/${docId}/index-status`)
+    return res.data
+  },
+}
+
+// Phase 4: Retrieval API endpoints
+export const retrievalApi = {
+  search: async (
+    query: string,
+    sourceDocumentIds: string[],
+    topK: number = 5,
+    scoreThreshold: number = 0.0,
+    modalityFilter?: string
+  ) => {
+    const res = await apiClient.post('/retrieval/search', {
+      query,
+      source_document_ids: sourceDocumentIds,
+      top_k: topK,
+      score_threshold: scoreThreshold,
+      modality_filter: modalityFilter ?? null,
+    })
+    return res.data
+  },
+
+  health: async () => {
+    const res = await apiClient.get('/retrieval/health')
+    return res.data
+  },
 }

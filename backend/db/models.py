@@ -55,6 +55,20 @@ class DocumentSourceType(str, Enum):
     text_note = "text_note"
 
 
+class IndexingStatus(str, Enum):
+    """Status of Qdrant vector indexing for a SourceDocument.
+
+    Separated from JobStatus (ingestion/processing) to distinguish
+    'processed locally' from 'indexed in Qdrant'.
+    """
+
+    not_started = "not_started"
+    indexing = "indexing"
+    indexed = "indexed"
+    completed_with_warnings = "completed_with_warnings"
+    failed = "failed"
+
+
 class RecordSourceType(str, Enum):
     """Source types for IndexedRecord — includes all derived record types.
 
@@ -178,6 +192,12 @@ class SourceDocument(SQLModel, table=True):
     ingestion_status: JobStatus = Field(default=JobStatus.queued, index=True)
     error_message: Optional[str] = Field(default=None)
 
+    # --- Phase 3: Qdrant indexing status (separate from ingestion) ---
+    indexing_status: IndexingStatus = Field(
+        default=IndexingStatus.not_started, index=True
+    )
+    indexing_error_message: Optional[str] = Field(default=None)
+
     # Relationships
     job: Optional[IngestionJob] = Relationship(back_populates="source_documents")
     indexed_records: list["IndexedRecord"] = Relationship(back_populates="source_document")
@@ -217,6 +237,10 @@ class IndexedRecord(SQLModel, table=True):
     page_number: Optional[int] = Field(default=None)
     timestamp_start: Optional[float] = Field(default=None)
     timestamp_end: Optional[float] = Field(default=None)
+
+    # Image occurrence metadata (for occurrence-aware deterministic IDs)
+    image_index: Optional[int] = Field(default=None)
+    image_sha256: Optional[str] = Field(default=None, index=True)
 
     # Vector presence tracking
     has_text_vector: bool = Field(default=False)

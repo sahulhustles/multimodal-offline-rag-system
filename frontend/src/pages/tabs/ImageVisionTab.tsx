@@ -96,7 +96,7 @@ export default function ImageVisionTab() {
             <div className="p-3 bg-status-warning-bg text-status-warning border border-status-warning rounded text-sm flex items-start gap-2">
               <AlertCircle className="w-5 h-5 flex-shrink-0" />
               <div>
-                In the full Phase 3 pipeline, only the CLIP image record would be eligible for indexing until a retry succeeds.
+                In the indexing pipeline, only the CLIP image record is eligible for indexing until a LLaVA retry succeeds.
               </div>
             </div>
           )}
