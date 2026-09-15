@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
-import { MessageSquare, Library, HelpCircle, Send, CheckSquare, Square, Cpu, RefreshCw, Search, FileText, Mic, Image, Clock, Hash, ChevronDown, ChevronUp, Link2, Zap, Target, AlertTriangle } from 'lucide-react'
-import { demoApi, retrievalApi } from '../api/client'
+import { MessageSquare, Library, HelpCircle, Send, CheckSquare, Square, Cpu, RefreshCw, Search, FileText, Mic, Image, Clock, Hash, ChevronDown, ChevronUp, Link2, Zap, Target, AlertTriangle, Bot, ShieldCheck, ShieldAlert, ShieldX, Quote, RotateCcw, Sparkles } from 'lucide-react'
+import { demoApi, generationApi } from '../api/client'
 import clsx from 'clsx'
 
 // ---------------------------------------------------------------------------
@@ -37,22 +37,52 @@ interface RetrievalResult {
   linked_records: LinkedRecord[]
 }
 
-interface SearchMetrics {
-  query: string
-  query_vector_dim: number
-  embedding_model: string
+interface Citation {
+  source_id: string
+  chunk_id: string
+  source_document_id: string
+  filename: string | null
+  source_type: string
+  modality: string
+  page_number: number | null
+  chunk_index: number
+  timestamp_start: number | null
+  timestamp_end: number | null
+  score: number
+  preview: string
+}
+
+interface RetrievalMetrics {
   encoding_time_ms: number
   search_time_ms: number
   hydration_time_ms: number
   total_time_ms: number
   result_count: number
+  embedding_model: string
+  query_vector_dim: number
 }
 
-interface SearchEntry {
+interface GenerationMetrics {
+  model: string
+  generation_time_ms: number
+  prompt_eval_count: number
+  eval_count: number
+  context_record_count: number
+  context_char_count: number
+}
+
+interface AnswerEntry {
   id: string
   query: string
-  results: RetrievalResult[]
-  metrics: SearchMetrics
+  answer: string
+  grounded: boolean
+  insufficient_context: boolean
+  is_conversational?: boolean
+  citations: Citation[]
+  retrieval_metrics: RetrievalMetrics | null
+  generation_metrics: GenerationMetrics | null
+  warnings: string[]
+  retrieval_results: RetrievalResult[]
   timestamp: Date
   error?: string
 }
@@ -109,7 +139,7 @@ const formatTime = (ms: number) => {
 }
 
 // ---------------------------------------------------------------------------
-// Result Card
+// Result Card (Phase 4 evidence — reused)
 // ---------------------------------------------------------------------------
 
 function ResultCard({ result, rank }: { result: RetrievalResult; rank: number }) {
@@ -228,6 +258,152 @@ function ResultCard({ result, rank }: { result: RetrievalResult; rank: number })
 }
 
 // ---------------------------------------------------------------------------
+// Grounded Answer Panel (Phase 5)
+// ---------------------------------------------------------------------------
+
+function AnswerPanel({ entry }: { entry: AnswerEntry }) {
+  const [showCitations, setShowCitations] = useState(false)
+
+  // Interactive Conversational Response
+  if (entry.is_conversational) {
+    return (
+      <div className="border-2 border-brand/30 bg-brand/5">
+        <div className="px-4 py-2.5 bg-brand/10 border-b border-brand/20 flex items-center gap-2">
+          <Bot className="w-4 h-4 text-brand" />
+          <span className="text-xs font-mono font-bold uppercase tracking-wider text-brand">
+            Interactive Assistant
+          </span>
+          <span className="text-xs text-text-muted font-mono hidden sm:inline">— Conversation</span>
+          {entry.generation_metrics && (
+            <span className="ml-auto text-xs font-mono text-brand/80">
+              {formatTime(entry.generation_metrics.generation_time_ms)}
+            </span>
+          )}
+        </div>
+        <div className="px-4 py-3">
+          <p className="text-sm text-text-main leading-relaxed whitespace-pre-line">{entry.answer}</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Insufficient context
+  if (entry.insufficient_context) {
+    return (
+      <div className="border-2 border-amber-300 bg-amber-50/50">
+        <div className="px-4 py-3 flex items-start gap-3">
+          <ShieldAlert className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+          <div>
+            <div className="flex items-center gap-2 mb-1.5">
+              <span className="text-xs font-mono font-bold uppercase tracking-wider text-amber-700">Insufficient Context</span>
+            </div>
+            <p className="text-sm text-amber-900 leading-relaxed">{entry.answer}</p>
+            {entry.warnings.length > 0 && (
+              <div className="mt-2 space-y-1">
+                {entry.warnings.map((w, i) => (
+                  <p key={i} className="text-xs text-amber-700 italic">{w}</p>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // Validation failure (invalid/missing citations)
+  if (!entry.grounded && !entry.insufficient_context && !entry.error) {
+    return (
+      <div className="border-2 border-red-300 bg-red-50/50">
+        <div className="px-4 py-3 flex items-start gap-3">
+          <ShieldX className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
+          <div>
+            <div className="flex items-center gap-2 mb-1.5">
+              <span className="text-xs font-mono font-bold uppercase tracking-wider text-red-700">Verification Failed</span>
+            </div>
+            <p className="text-sm text-red-900 leading-relaxed">{entry.answer}</p>
+            {entry.warnings.length > 0 && (
+              <div className="mt-2 space-y-1">
+                {entry.warnings.map((w, i) => (
+                  <p key={i} className="text-xs text-red-700 italic">{w}</p>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // Grounded answer
+  if (entry.grounded) {
+    return (
+      <div className="border-2 border-emerald-300 bg-emerald-50/30">
+        <div className="px-4 py-3 bg-emerald-50/50 border-b border-emerald-200 flex items-center gap-2">
+          <ShieldCheck className="w-4 h-4 text-emerald-600" />
+          <span className="text-xs font-mono font-bold uppercase tracking-wider text-emerald-700">
+            Grounded Answer
+          </span>
+          <span className="text-xs text-emerald-600 font-mono">
+            — {entry.citations.length} citation{entry.citations.length !== 1 ? 's' : ''} verified
+          </span>
+          {entry.generation_metrics && (
+            <span className="ml-auto text-xs font-mono text-emerald-600">
+              {formatTime(entry.generation_metrics.generation_time_ms)}
+            </span>
+          )}
+        </div>
+
+        <div className="px-4 py-3">
+          <p className="text-sm text-text-main leading-relaxed whitespace-pre-line">{entry.answer}</p>
+        </div>
+
+        {/* Citation chips */}
+        {entry.citations.length > 0 && (
+          <div className="border-t border-emerald-200">
+            <button
+              onClick={() => setShowCitations(!showCitations)}
+              className="w-full px-4 py-2 text-xs text-emerald-700 font-mono flex items-center gap-1.5 cursor-pointer hover:bg-emerald-50/50"
+            >
+              <Quote className="w-3 h-3" />
+              <span className="font-bold uppercase tracking-wider">Sources cited</span>
+              <span className="ml-1 text-emerald-600">
+                {entry.citations.map(c => `[${c.source_id}]`).join(' ')}
+              </span>
+              {showCitations ? <ChevronUp className="w-3 h-3 ml-auto" /> : <ChevronDown className="w-3 h-3 ml-auto" />}
+            </button>
+
+            {showCitations && (
+              <div className="px-4 pb-3 space-y-2">
+                {entry.citations.map((c) => (
+                  <div key={c.source_id} className="p-2.5 bg-emerald-50 border border-emerald-200 text-xs">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="font-bold font-mono text-emerald-700 bg-emerald-100 px-1.5 py-0.5 border border-emerald-300">[{c.source_id}]</span>
+                      {getSourceIcon(c.source_type)}
+                      <span className="font-bold font-mono uppercase text-text-muted">{getSourceLabel(c.source_type)}</span>
+                      <span className="text-text-muted truncate">{c.filename || 'Unknown'}</span>
+                      {c.page_number != null && (
+                        <span className="font-mono text-text-muted">p.{c.page_number}</span>
+                      )}
+                      <span className={clsx("px-1 py-0.5 font-bold font-mono border ml-auto", formatScore(c.score).color)}>
+                        {formatScore(c.score).text}
+                      </span>
+                    </div>
+                    <p className="text-text-main leading-relaxed mt-1">{c.preview}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  return null
+}
+
+// ---------------------------------------------------------------------------
 // Main Component
 // ---------------------------------------------------------------------------
 
@@ -235,10 +411,10 @@ export default function ChatWorkspacePage() {
   const [documents, setDocuments] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedDocIds, setSelectedDocIds] = useState<string[]>([])
-  const [searches, setSearches] = useState<SearchEntry[]>([])
+  const [entries, setEntries] = useState<AnswerEntry[]>([])
   const [inputVal, setInputVal] = useState('')
-  const [searching, setSearching] = useState(false)
-  const [latestMetrics, setLatestMetrics] = useState<SearchMetrics | null>(null)
+  const [generating, setGenerating] = useState(false)
+  const [latestEntry, setLatestEntry] = useState<AnswerEntry | null>(null)
   const resultsEndRef = useRef<HTMLDivElement>(null)
 
   // Mobile active panel toggle state
@@ -275,7 +451,7 @@ export default function ChatWorkspacePage() {
     if (resultsEndRef.current) {
       resultsEndRef.current.scrollIntoView({ behavior: 'smooth' })
     }
-  }, [searches])
+  }, [entries])
 
   const handleToggleDoc = (id: string) => {
     setSelectedDocIds(prev =>
@@ -283,65 +459,70 @@ export default function ChatWorkspacePage() {
     )
   }
 
-  const handleSearch = async (e: React.FormEvent) => {
+  const handleAsk = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!inputVal.trim() || selectedDocIds.length === 0 || searching) return
+    if (!inputVal.trim() || selectedDocIds.length === 0 || generating) return
 
     const query = inputVal.trim()
     setInputVal('')
-    setSearching(true)
+    setGenerating(true)
 
-    const entryId = `search-${Date.now()}`
+    const entryId = `gen-${Date.now()}`
+
+    // Extract recent non-error conversation turns for context
+    const conversationHistory = entries
+      .filter(e => e.answer && !e.error)
+      .flatMap(e => [
+        { role: 'user', content: e.query },
+        { role: 'assistant', content: e.answer },
+      ])
+      .slice(-6)
 
     try {
-      const response = await retrievalApi.search(query, selectedDocIds)
+      const response = await generationApi.answer(
+        query,
+        selectedDocIds,
+        5,
+        0.0,
+        conversationHistory
+      )
 
-      const metrics: SearchMetrics = {
-        query: response.query,
-        query_vector_dim: response.query_vector_dim,
-        embedding_model: response.embedding_model,
-        encoding_time_ms: response.encoding_time_ms,
-        search_time_ms: response.search_time_ms,
-        hydration_time_ms: response.hydration_time_ms,
-        total_time_ms: response.total_time_ms,
-        result_count: response.result_count,
+      const newEntry: AnswerEntry = {
+        id: entryId,
+        query,
+        answer: response.answer,
+        grounded: response.grounded,
+        insufficient_context: response.insufficient_context,
+        is_conversational: response.is_conversational,
+        citations: response.citations || [],
+        retrieval_metrics: response.retrieval_metrics || null,
+        generation_metrics: response.generation_metrics || null,
+        warnings: response.warnings || [],
+        retrieval_results: response.retrieval_results || [],
+        timestamp: new Date(),
       }
 
-      setLatestMetrics(metrics)
-      setSearches(prev => [
-        ...prev,
-        {
-          id: entryId,
-          query,
-          results: response.results,
-          metrics,
-          timestamp: new Date(),
-        },
-      ])
+      setLatestEntry(newEntry)
+      setEntries(prev => [...prev, newEntry])
     } catch (err: any) {
-      const errorMsg = err?.response?.data?.detail || err?.message || 'Search failed'
-      setSearches(prev => [
-        ...prev,
-        {
-          id: entryId,
-          query,
-          results: [],
-          metrics: {
-            query,
-            query_vector_dim: 0,
-            embedding_model: '',
-            encoding_time_ms: 0,
-            search_time_ms: 0,
-            hydration_time_ms: 0,
-            total_time_ms: 0,
-            result_count: 0,
-          },
-          timestamp: new Date(),
-          error: errorMsg,
-        },
-      ])
+      const errorMsg = err?.response?.data?.detail || err?.message || 'Generation failed'
+      const errorEntry: AnswerEntry = {
+        id: entryId,
+        query,
+        answer: '',
+        grounded: false,
+        insufficient_context: false,
+        citations: [],
+        retrieval_metrics: null,
+        generation_metrics: null,
+        warnings: [],
+        retrieval_results: [],
+        timestamp: new Date(),
+        error: errorMsg,
+      }
+      setEntries(prev => [...prev, errorEntry])
     } finally {
-      setSearching(false)
+      setGenerating(false)
     }
   }
 
@@ -361,17 +542,17 @@ export default function ChatWorkspacePage() {
             Chat Workspace
           </h1>
           <p className="text-text-muted text-xs md:text-sm mt-1">
-            Semantic search over your indexed knowledge base. Retrieved evidence is ranked by relevance.
+            Ask questions over your knowledge base. Grounded answers cite retrieved evidence.
           </p>
         </div>
 
         {/* Phase Info Banner */}
         <div className="flex flex-row md:flex-col items-center md:items-end justify-between md:justify-start border border-border-light p-2 md:p-0 md:border-0 rounded-sm bg-surface-secondary md:bg-transparent text-right shrink-0 gap-2">
           <span className="text-xs font-mono bg-status-success-bg text-status-success border border-status-success px-2 py-0.5 rounded-sm uppercase tracking-wider font-semibold">
-            Phase 4: Retrieval Active
+            Phase 5: Generation Active
           </span>
           <span className="text-xs text-text-muted font-medium">
-            Dense Vector Search — SentenceTransformer
+            Grounded Answer Generation — Local Ollama
           </span>
         </div>
       </div>
@@ -416,7 +597,7 @@ export default function ChatWorkspacePage() {
                 activePanel === 'chat' ? "bg-surface-secondary text-brand border border-border-light" : "text-text-muted"
               )}
             >
-              Search
+              Chat
             </button>
             <button
               onClick={() => setActivePanel('metrics')}
@@ -483,7 +664,7 @@ export default function ChatWorkspacePage() {
               </div>
             </div>
 
-            {/* Column 2: Search Interface */}
+            {/* Column 2: Chat Interface */}
             <div className={clsx(
               "flex-1 bg-surface border-2 border-border flex flex-col overflow-hidden min-w-0",
               activePanel === 'chat' ? "flex animate-fade-in" : "hidden lg:flex"
@@ -496,26 +677,44 @@ export default function ChatWorkspacePage() {
                   <span className="text-border-light">|</span>
                   <span className="hidden sm:inline">Scope: <strong>{activeChunksCount}</strong> chunks</span>
                 </div>
-                <span className="text-xs text-status-success bg-status-success-bg border border-status-success px-2 py-0.5 rounded-sm uppercase tracking-wider font-bold font-mono">
-                  Retrieval Active
-                </span>
+                <div className="flex items-center gap-2">
+                  {entries.length > 0 && (
+                    <button
+                      onClick={() => setEntries([])}
+                      className="text-xs font-mono text-text-muted hover:text-red-600 flex items-center gap-1 cursor-pointer transition-colors px-2 py-0.5 border border-border-light bg-surface hover:border-red-200"
+                      title="Clear conversation"
+                    >
+                      <RotateCcw className="w-3 h-3" />
+                      <span>Reset Chat</span>
+                    </button>
+                  )}
+                  <span className="text-xs text-status-success bg-status-success-bg border border-status-success px-2 py-0.5 rounded-sm uppercase tracking-wider font-bold font-mono flex items-center gap-1">
+                    <Sparkles className="w-3 h-3 text-status-success" />
+                    Interactive Chat
+                  </span>
+                </div>
               </div>
 
               {/* Results Area */}
               <div className="flex-1 p-4 overflow-y-auto space-y-6">
-                {searches.length === 0 ? (
+                {entries.length === 0 ? (
                   <div className="h-full flex flex-col items-center justify-center text-center p-6 text-text-muted">
-                    <Search className="w-10 h-10 text-border mb-2" />
-                    <h4 className="font-bold text-text-main text-sm">Search your knowledge base</h4>
-                    <p className="text-xs max-w-xs mt-1 leading-relaxed">
-                      Enter a query below to retrieve semantically similar evidence from your indexed documents.
+                    <Bot className="w-12 h-12 text-brand/70 mb-3" />
+                    <h4 className="font-bold text-text-main text-sm">Interactive Multimodal Assistant</h4>
+                    <p className="text-xs max-w-md mt-1 leading-relaxed">
+                      Converse naturally with the assistant, or ask factual questions across your indexed PDFs, images, and audio files. Factual claims cite exact source records.
                     </p>
-                    <div className="mt-4 flex flex-wrap gap-2 max-w-sm justify-center">
-                      {['What are the key findings?', 'Summarize the methodology', 'List all conclusions'].map((suggestion) => (
+                    <div className="mt-5 flex flex-wrap gap-2 max-w-lg justify-center">
+                      {[
+                        '👋 Hello, what can you help me with?',
+                        "📄 Summarize Sahul Hameed's education and experience",
+                        '🎫 What are the candidate details in the hall ticket?',
+                        '🖼️ What screenshots or images have been analyzed?',
+                      ].map((suggestion) => (
                         <button
                           key={suggestion}
                           onClick={() => setInputVal(suggestion)}
-                          className="text-xs px-2.5 py-1.5 border border-border-light bg-surface-secondary text-text-muted hover:text-brand hover:border-brand/30 cursor-pointer transition-colors"
+                          className="text-xs px-3 py-1.5 border border-border-light bg-surface-secondary text-text-main hover:text-brand hover:border-brand/40 cursor-pointer transition-all hover:shadow-sm"
                         >
                           {suggestion}
                         </button>
@@ -523,14 +722,14 @@ export default function ChatWorkspacePage() {
                     </div>
                   </div>
                 ) : (
-                  searches.map((entry) => (
+                  entries.map((entry) => (
                     <div key={entry.id} className="space-y-3">
                       {/* Query bubble */}
                       <div className="flex justify-end">
                         <div className="px-3 py-2.5 bg-surface-secondary border-2 border-border-light text-xs text-text-main max-w-[80%]">
                           <div className="flex items-center gap-1.5 mb-1 text-text-muted">
                             <Search className="w-3 h-3" />
-                            <span className="font-mono uppercase tracking-wider font-bold text-[10px]">Query</span>
+                            <span className="font-mono uppercase tracking-wider font-bold text-[10px]">Question</span>
                           </div>
                           {entry.query}
                         </div>
@@ -541,28 +740,35 @@ export default function ChatWorkspacePage() {
                         <div className="flex gap-2 items-start p-3 bg-red-50 border-2 border-red-200 text-xs">
                           <AlertTriangle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
                           <div>
-                            <span className="font-bold text-red-700">Search failed</span>
+                            <span className="font-bold text-red-700">Generation failed</span>
                             <p className="text-red-600 mt-1">{entry.error}</p>
                           </div>
                         </div>
                       )}
 
-                      {/* Results header */}
-                      {!entry.error && (
-                        <div className="flex items-center gap-2 text-xs text-text-muted font-mono">
+                      {/* Answer Panel (grounded / insufficient / validation failure) */}
+                      {!entry.error && <AnswerPanel entry={entry} />}
+
+                      {/* Retrieved Evidence header */}
+                      {!entry.error && entry.retrieval_results.length > 0 && (
+                        <div className="flex items-center gap-2 text-xs text-text-muted font-mono mt-4">
                           <Target className="w-3.5 h-3.5 text-brand" />
                           <span className="uppercase tracking-wider font-bold">
                             Retrieved Evidence
                           </span>
                           <span className="text-border-light">—</span>
-                          <span>{entry.results.length} result{entry.results.length !== 1 ? 's' : ''}</span>
-                          <span className="text-border-light">•</span>
-                          <span>{formatTime(entry.metrics.total_time_ms)}</span>
+                          <span>{entry.retrieval_results.length} result{entry.retrieval_results.length !== 1 ? 's' : ''}</span>
+                          {entry.retrieval_metrics && (
+                            <>
+                              <span className="text-border-light">•</span>
+                              <span>{formatTime(entry.retrieval_metrics.total_time_ms)}</span>
+                            </>
+                          )}
                         </div>
                       )}
 
-                      {/* No results */}
-                      {!entry.error && entry.results.length === 0 && (
+                      {/* No retrieval results */}
+                      {!entry.error && entry.retrieval_results.length === 0 && !entry.insufficient_context && (
                         <div className="p-4 bg-surface-secondary border border-border-light text-xs text-text-muted text-center">
                           <HelpCircle className="w-6 h-6 text-border mx-auto mb-2" />
                           <p className="font-semibold text-text-main">No matching evidence found</p>
@@ -571,19 +777,19 @@ export default function ChatWorkspacePage() {
                       )}
 
                       {/* Result cards */}
-                      {entry.results.map((result, i) => (
+                      {entry.retrieval_results.map((result, i) => (
                         <ResultCard key={result.chunk_id} result={result} rank={i + 1} />
                       ))}
                     </div>
                   ))
                 )}
 
-                {/* Searching indicator */}
-                {searching && (
+                {/* Generating indicator */}
+                {generating && (
                   <div className="flex items-center gap-3 p-4 bg-surface-secondary border-2 border-brand/20 text-xs text-text-muted animate-pulse">
                     <RefreshCw className="w-4 h-4 text-brand animate-spin" />
                     <span className="font-mono uppercase tracking-wider font-bold">
-                      Encoding query & searching vectors...
+                      Retrieving evidence & generating grounded answer...
                     </span>
                   </div>
                 )}
@@ -592,11 +798,11 @@ export default function ChatWorkspacePage() {
               </div>
 
               {/* Input Form */}
-              <form onSubmit={handleSearch} className="p-3 border-t-2 border-border bg-surface-secondary flex gap-2 shrink-0">
+              <form onSubmit={handleAsk} className="p-3 border-t-2 border-border bg-surface-secondary flex gap-2 shrink-0">
                 <input
                   type="text"
-                  placeholder={selectedDocIds.length === 0 ? "Select at least one source document to start..." : "Search your knowledge base..."}
-                  disabled={selectedDocIds.length === 0 || searching}
+                  placeholder={selectedDocIds.length === 0 ? "Select at least one source document to start..." : "Ask a question about your knowledge base..."}
+                  disabled={selectedDocIds.length === 0 || generating}
                   value={inputVal}
                   onChange={(e) => setInputVal(e.target.value)}
                   className="input-field text-xs flex-1"
@@ -604,10 +810,10 @@ export default function ChatWorkspacePage() {
 
                 <button
                   type="submit"
-                  disabled={!inputVal.trim() || selectedDocIds.length === 0 || searching}
+                  disabled={!inputVal.trim() || selectedDocIds.length === 0 || generating}
                   className="btn-primary w-11 h-11 sm:h-auto sm:px-4 p-0 flex items-center justify-center shrink-0 cursor-pointer text-xs"
                 >
-                  {searching ? (
+                  {generating ? (
                     <RefreshCw className="w-4 h-4 animate-spin" />
                   ) : (
                     <Send className="w-4 h-4" />
@@ -616,7 +822,7 @@ export default function ChatWorkspacePage() {
               </form>
             </div>
 
-            {/* Column 3: Retrieval Metrics */}
+            {/* Column 3: Metrics Panel */}
             <div className={clsx(
               "w-full lg:w-72 bg-surface border-2 border-border flex flex-col overflow-hidden shrink-0",
               activePanel === 'metrics' ? "flex animate-fade-in" : "hidden lg:flex"
@@ -624,13 +830,25 @@ export default function ChatWorkspacePage() {
               <div className="p-3 bg-surface-secondary border-b border-border-light shrink-0">
                 <h2 className="font-bold text-xs font-mono uppercase tracking-wider text-text-muted flex items-center gap-2">
                   <Cpu className="w-4 h-4 text-brand" />
-                  Retrieval Metrics
+                  Pipeline Metrics
                 </h2>
               </div>
 
               <div className="flex-1 p-4 space-y-4 overflow-y-auto">
 
-                {/* Dense Vector Search — active */}
+                {/* Generation Model */}
+                <div className="space-y-1">
+                  <label className="text-xs text-text-muted block font-bold font-mono uppercase tracking-wider">Generation Model</label>
+                  <div className="p-2.5 bg-surface-secondary border border-border-light text-xs text-text-muted flex items-start gap-2 rounded-sm">
+                    <Bot className="w-4 h-4 text-status-success shrink-0 mt-0.5" />
+                    <div>
+                      <span className="font-bold text-text-main block text-xs">Local Ollama (LLaVA)</span>
+                      <p className="mt-1 leading-relaxed">Grounded generation with citation validation over retrieved evidence.</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Dense Vector Search */}
                 <div className="space-y-1">
                   <label className="text-xs text-text-muted block font-bold font-mono uppercase tracking-wider">Dense Vector Search</label>
                   <div className="p-2.5 bg-surface-secondary border border-border-light text-xs text-text-muted flex items-start gap-2 rounded-sm">
@@ -642,26 +860,55 @@ export default function ChatWorkspacePage() {
                   </div>
                 </div>
 
-                {/* Latest Search Timing */}
-                {latestMetrics && (
+                {/* Latest Generation Timing */}
+                {latestEntry && latestEntry.generation_metrics && (
                   <div className="space-y-1">
-                    <label className="text-xs text-text-muted block font-bold font-mono uppercase tracking-wider">Latest Search Timing</label>
+                    <label className="text-xs text-text-muted block font-bold font-mono uppercase tracking-wider">Generation Timing</label>
+                    <div className="bg-surface-secondary border border-border-light p-3 text-xs space-y-2 font-mono rounded-sm">
+                      <div className="flex justify-between text-text-muted">
+                        <span>LLM Generation:</span>
+                        <span className="text-text-main font-semibold">{formatTime(latestEntry.generation_metrics.generation_time_ms)}</span>
+                      </div>
+                      <div className="flex justify-between text-text-muted">
+                        <span>Prompt Tokens:</span>
+                        <span className="text-text-main font-semibold">{latestEntry.generation_metrics.prompt_eval_count}</span>
+                      </div>
+                      <div className="flex justify-between text-text-muted">
+                        <span>Output Tokens:</span>
+                        <span className="text-text-main font-semibold">{latestEntry.generation_metrics.eval_count}</span>
+                      </div>
+                      <div className="flex justify-between text-text-muted">
+                        <span>Context Records:</span>
+                        <span className="text-text-main font-semibold">{latestEntry.generation_metrics.context_record_count}</span>
+                      </div>
+                      <div className="flex justify-between text-text-muted">
+                        <span>Context Chars:</span>
+                        <span className="text-text-main font-semibold">{latestEntry.generation_metrics.context_char_count.toLocaleString()}</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Latest Retrieval Timing */}
+                {latestEntry && latestEntry.retrieval_metrics && (
+                  <div className="space-y-1">
+                    <label className="text-xs text-text-muted block font-bold font-mono uppercase tracking-wider">Retrieval Timing</label>
                     <div className="bg-surface-secondary border border-border-light p-3 text-xs space-y-2 font-mono rounded-sm">
                       <div className="flex justify-between text-text-muted">
                         <span>Query Encoding:</span>
-                        <span className="text-text-main font-semibold">{formatTime(latestMetrics.encoding_time_ms)}</span>
+                        <span className="text-text-main font-semibold">{formatTime(latestEntry.retrieval_metrics.encoding_time_ms)}</span>
                       </div>
                       <div className="flex justify-between text-text-muted">
                         <span>Qdrant Search:</span>
-                        <span className="text-text-main font-semibold">{formatTime(latestMetrics.search_time_ms)}</span>
+                        <span className="text-text-main font-semibold">{formatTime(latestEntry.retrieval_metrics.search_time_ms)}</span>
                       </div>
                       <div className="flex justify-between text-text-muted">
                         <span>SQLite Hydration:</span>
-                        <span className="text-text-main font-semibold">{formatTime(latestMetrics.hydration_time_ms)}</span>
+                        <span className="text-text-main font-semibold">{formatTime(latestEntry.retrieval_metrics.hydration_time_ms)}</span>
                       </div>
                       <div className="border-t border-border-light pt-2 flex justify-between text-text-main font-bold">
-                        <span>Total:</span>
-                        <span>{formatTime(latestMetrics.total_time_ms)}</span>
+                        <span>Total Retrieval:</span>
+                        <span>{formatTime(latestEntry.retrieval_metrics.total_time_ms)}</span>
                       </div>
                     </div>
                   </div>
@@ -683,42 +930,67 @@ export default function ChatWorkspacePage() {
                       <span>Retrieval Limit:</span>
                       <span className="text-text-main font-semibold">Top 5</span>
                     </div>
-                    {latestMetrics && (
+                    {latestEntry && latestEntry.retrieval_metrics && (
                       <div className="flex justify-between text-text-muted">
                         <span>Last Results:</span>
-                        <span className="text-text-main font-semibold">{latestMetrics.result_count} hits</span>
+                        <span className="text-text-main font-semibold">{latestEntry.retrieval_metrics.result_count} hits</span>
                       </div>
                     )}
                   </div>
                 </div>
 
+                {/* Grounding Status */}
+                {latestEntry && (
+                  <div className="space-y-1">
+                    <label className="text-xs text-text-muted block font-bold font-mono uppercase tracking-wider">Grounding Status</label>
+                    <div className="bg-surface-secondary border border-border-light p-3 text-xs space-y-2 font-mono rounded-sm">
+                      <div className="flex justify-between text-text-muted">
+                        <span>Grounded:</span>
+                        <span className={clsx("font-semibold", latestEntry.grounded ? "text-emerald-600" : "text-red-500")}>
+                          {latestEntry.grounded ? 'YES' : 'NO'}
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-text-muted">
+                        <span>Citations:</span>
+                        <span className="text-text-main font-semibold">{latestEntry.citations.length}</span>
+                      </div>
+                      {latestEntry.insufficient_context && (
+                        <div className="flex justify-between text-text-muted">
+                          <span>Status:</span>
+                          <span className="text-amber-600 font-semibold">Insufficient</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
                 {/* Embedding Model Info */}
-                {latestMetrics && latestMetrics.embedding_model && (
+                {latestEntry && latestEntry.retrieval_metrics && latestEntry.retrieval_metrics.embedding_model && (
                   <div className="space-y-1">
                     <label className="text-xs text-text-muted block font-bold font-mono uppercase tracking-wider">Embedding Model</label>
                     <div className="bg-surface-secondary border border-border-light p-3 text-xs space-y-2 font-mono rounded-sm">
                       <div className="flex justify-between text-text-muted">
                         <span>Model:</span>
-                        <span className="text-text-main font-semibold text-right truncate max-w-[140px]" title={latestMetrics.embedding_model}>
-                          {latestMetrics.embedding_model.split('/').pop()}
+                        <span className="text-text-main font-semibold text-right truncate max-w-[140px]" title={latestEntry.retrieval_metrics.embedding_model}>
+                          {latestEntry.retrieval_metrics.embedding_model.split('/').pop()}
                         </span>
                       </div>
                       <div className="flex justify-between text-text-muted">
                         <span>Dimensions:</span>
-                        <span className="text-text-main font-semibold">{latestMetrics.query_vector_dim}</span>
+                        <span className="text-text-main font-semibold">{latestEntry.retrieval_metrics.query_vector_dim}</span>
                       </div>
                     </div>
                   </div>
                 )}
 
                 {/* Status */}
-                {!latestMetrics && (
+                {!latestEntry && (
                   <div className="p-3 bg-surface-secondary border border-border-light text-xs text-text-muted flex gap-2 rounded-sm">
-                    <Search className="w-4 h-4 text-brand shrink-0 mt-0.5" />
+                    <Bot className="w-4 h-4 text-brand shrink-0 mt-0.5" />
                     <div>
-                      <strong className="text-text-main">Ready for search</strong>
+                      <strong className="text-text-main">Ready for questions</strong>
                       <p className="mt-1 leading-relaxed">
-                        Metrics will populate after your first query.
+                        Metrics will populate after your first question.
                       </p>
                     </div>
                   </div>

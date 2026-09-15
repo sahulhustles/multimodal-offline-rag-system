@@ -1,4 +1,4 @@
-import { ArrowRight, ArrowDown, Lock } from 'lucide-react'
+import { ArrowRight, ArrowDown } from 'lucide-react'
 
 export default function ArchitecturePage() {
   return (
@@ -79,14 +79,14 @@ export default function ArchitecturePage() {
         <ArrowDown className="block md:hidden self-center text-text-muted w-6 h-6 shrink-0" />
 
         {/* GENERATE */}
-        <div className="flex-1 min-w-[250px] border-2 border-border bg-surface overflow-hidden flex flex-col opacity-50 border-dashed">
-          <div className="bg-status-warning-bg border-b border-status-warning text-status-warning px-4 py-2 font-mono font-bold text-xs uppercase tracking-wider">
-            5. Generate (Next)
+        <div className="flex-1 min-w-[250px] border-2 border-border bg-surface overflow-hidden flex flex-col">
+          <div className="bg-status-success-bg border-b border-status-success text-status-success px-4 py-2 font-mono font-bold text-xs uppercase tracking-wider">
+            5. Generate (Active)
           </div>
           <div className="p-4 flex-1 space-y-3">
-            <FutureNode title="Context Assembler" desc="Prompt template with retrieved multimodal evidence" />
-            <FutureNode title="Local LLM (Ollama)" desc="Offline answer generation with grounded citations" />
-            <FutureNode title="Conversational Memory" desc="Multi-turn conversation history & follow-ups" />
+            <Node title="Context Assembler" desc="Score-gated, deduplicated [S#] source blocks with budget control." />
+            <Node title="Local LLM (Ollama)" desc="llava via /api/chat. Temperature 0, citation-enforced system prompt." />
+            <Node title="Citation Validator" desc="[S#] extraction, allowed-set validation, safe failure on invalid/missing." />
           </div>
         </div>
       </div>
@@ -103,15 +103,4 @@ function Node({ title, desc }: { title: string, desc?: string }) {
   )
 }
 
-function FutureNode({ title, desc }: { title: string, desc?: string }) {
-  return (
-    <div className="p-3 bg-surface-secondary border border-border-light border-dashed text-xs text-text-muted relative overflow-hidden">
-      <div className="flex items-center gap-2">
-        <Lock className="w-3.5 h-3.5 shrink-0" />
-        <div className="font-bold">{title}</div>
-      </div>
-      {desc && <div className="text-xs mt-1 leading-snug ml-5 font-mono break-words" style={{ overflowWrap: 'anywhere' }}>{desc}</div>}
-      <div className="absolute top-0 right-0 bg-surface border-l border-b border-border-light px-1.5 py-0.5 text-xs font-mono uppercase tracking-wider font-bold">Future</div>
-    </div>
-  )
-}
+

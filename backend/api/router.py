@@ -21,3 +21,8 @@ api_router.include_router(demo.router, prefix="/demo", tags=["Demo Processing AP
 # Phase 4: Retrieval
 from backend.api.endpoints import retrieval
 api_router.include_router(retrieval.router, prefix="/retrieval", tags=["Retrieval"])
+
+# Phase 5: Generation
+from backend.api.endpoints import generation
+api_router.include_router(generation.router, prefix="/generation", tags=["Generation"])
+

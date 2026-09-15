@@ -71,6 +71,20 @@ class Settings(BaseSettings):
     retrieval_top_k: int = 5
     retrieval_score_threshold: float = 0.0
 
+    # --- Generation (Phase 5) ---
+    # Model used for answer generation (separate from ollama_model used for image descriptions)
+    generation_model: str = "llama3.2:3b"
+    generation_temperature: float = 0.0
+    generation_max_tokens: int = 512
+    generation_timeout: float = 120.0
+    # Evidence gate: minimum retrieval score to include a record in the LLM context.
+    # Calibrated to 0.10 to prevent dropping relevant semantic matches.
+    generation_min_score: float = 0.10
+    generation_max_context_records: int = 5
+    generation_max_chars_per_record: int = 2000
+    generation_max_context_chars: int = 8000
+
+
     # --- Server ---
     backend_host: str = "0.0.0.0"
     backend_port: int = 8000

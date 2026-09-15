@@ -131,3 +131,29 @@ export const retrievalApi = {
     return res.data
   },
 }
+
+// Phase 5: Generation API endpoints
+export const generationApi = {
+  answer: async (
+    query: string,
+    sourceDocumentIds: string[],
+    topK: number = 5,
+    scoreThreshold: number = 0.0,
+    conversationHistory: { role: string; content: string }[] = []
+  ) => {
+    const res = await apiClient.post('/generation/answer', {
+      query,
+      source_document_ids: sourceDocumentIds,
+      top_k: topK,
+      score_threshold: scoreThreshold,
+      conversation_history: conversationHistory,
+    })
+    return res.data
+  },
+
+  health: async () => {
+    const res = await apiClient.get('/generation/health')
+    return res.data
+  },
+}
+
